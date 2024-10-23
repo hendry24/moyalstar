@@ -109,6 +109,8 @@ def collect_by_diff(q, W = None):
         The same quantity with its terms collected. 
     """
 
+    q = sm.expand(q)
+
     if not(q.atoms(sm.Function)):
         return q
 
