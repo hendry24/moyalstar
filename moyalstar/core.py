@@ -82,7 +82,7 @@ def make_prime(q):
 
     """
     x0, p0 = _get_symbols_0()
-    I, x, p, xx, pp, ddx, ddp = get_symbols()
+    I, W, x, p, xx, pp, ddx, ddp = get_symbols()
     q = q.subs({x:x0, p:p0}) 
 
     qq = q.subs({x0 : xx, p0 : pp})
@@ -122,7 +122,7 @@ def bopp(q, left=False):
     """
 
     x0, p0 = _get_symbols_0()
-    I, x, p, xx, pp, ddx, ddp = get_symbols()
+    I, W, x, p, xx, pp, ddx, ddp = get_symbols()
 
     if not(q.is_commutative):
         msg = "Cannot Bopp shift with primed variables present."
@@ -142,7 +142,7 @@ def _first_index_and_diff_order(q):
     q.args thus give its factors.
     """
 
-    I, x, p, xx, pp, ddx, ddp = get_symbols()
+    I, W, x, p, xx, pp, ddx, ddp = get_symbols()
 
     for idx, qq in enumerate(q.args):
         if qq == ddx:
@@ -176,7 +176,7 @@ def _replace_diff(q):
         return q
 
 def _eval_star(q, do = True):
-    I, x, p, xx, pp, ddx, ddp = get_symbols()
+    I, W, x, p, xx, pp, ddx, ddp = get_symbols()
     
     q = sm.expand(q)
 
