@@ -23,6 +23,9 @@ def get_symbols():
     I : simpy.I
         The imaginary number compatible with sympy.
 
+    W : simpy.Function
+        The Wigner function variable, `simpy.Function("W")'.
+
     x : simpy.Symbol
         Position variable. This is the Wigner transform of the position operator.
 
@@ -47,10 +50,11 @@ def get_symbols():
 
     """
     I = sm.I
+    W = sm.Function("W")
     x, p = sm.symbols(r"x p", real=True)
     xx, pp = sm.symbols(r"x' p'", commutative = False)
     ddx, ddp = sm.symbols(r"\partial_{x'} \partial_{p'}", commutative=False)
-    return I, x, p, xx, pp, ddx, ddp
+    return I, W, x, p, xx, pp, ddx, ddp
 
 def _get_symbols_0():
     x0, p0 = sm.symbols("x_0 p_0", real=True)
@@ -195,10 +199,10 @@ def star(A, B, do = True):
 
     A : sympy object
         Left-hand-side operand. Only one of this and `B` may contain a `sympy.Function`; else an exception
-        is raised. 
+        is raised. Must be unprimed.
 
     B : sympy object
-        Right-hand-side operand.
+        Right-hand-side operand, similar to `A`.
 
     do : bool, default: True
         Whether to evaluate the derivatives and replace the primed variables `xx`,`pp` with the default
@@ -211,6 +215,10 @@ def star(A, B, do = True):
 
         https://physics.stackexchange.com/questions/578522/why-does-the-star-product-satisfy-the-bopp-shift-relations-fx-p-star-gx-p
     """
+
+    if not(A.is_commutative) or not(B.is_commutative):
+        msg = "A and B must be unprimed. Consider substituting xx and pp by x and p, respectively."
+        raise ValueError(msg)
 
     is_function_inside_A = bool(A.atoms(sm.Function))
     is_function_inside_B = bool(B.atoms(sm.Function))
