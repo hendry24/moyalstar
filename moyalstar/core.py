@@ -93,7 +93,7 @@ def _replace_diff(q):
     if fido:
         cut_idx, diff_var, diff_order = fido
         prefactor = q.args[:cut_idx]
-        q_leftover = sm.Mul(q.args[cut_idx+1:])
+        q_leftover = sm.Mul(*q.args[cut_idx+1:])
         return sm.Mul(*prefactor,
                         sm.Derivative(_replace_diff(q_leftover),
                                       *[diff_var for _ in range(diff_order)]))
