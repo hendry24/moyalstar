@@ -144,7 +144,15 @@ def _first_index_and_diff_order(q):
 
     I, W, x, p, xx, pp, ddx, ddp = get_symbols()
 
-    for idx, qq in enumerate(q.args):
+    """
+    Everything to the right of the first "derivative operator" symbol
+    must be ordered in .args since we have specified the noncommutativity
+    of the primed symbols. It does not matter if the unprimed symbols get
+    stuck in the middle since the operator does not work on them. What is 
+    important is that x' and p' are correctly placed with respect to the
+    derivative operators.
+    """
+    for idx, qq in enumerate(q.args): 
         if qq == ddx:
             return idx, xx, 1
         if ddx in qq.args:
@@ -181,7 +189,7 @@ def _eval_star(q, do = True):
     q = sm.expand(q)
 
     out = 0
-    for qq in q.args: # each term in the sum.
+    for qq in q.args: # each term in the sum, order does not matter. 
         out += _replace_diff(qq)
 
     if do:
@@ -243,4 +251,5 @@ def star(A, B, do = True):
         q = sm.expand(A * B)
 
     out = _eval_star(q, do=do)
+
     return out
