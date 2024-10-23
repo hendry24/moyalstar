@@ -114,6 +114,7 @@ def collect_by_diff(q, W = None):
 
     if W is None:
         I, W, x, p, xx, pp, ddx, ddp = get_symbols()
+        W = W(x,p)
 
     max_order = max([qq.derivative_count 
                      for qq in list(q.atoms(sm.Derivative))])
