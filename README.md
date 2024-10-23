@@ -1,6 +1,10 @@
 # Moyal_star
 Moyal star-product with SymPy utilizing the Bopp shift.
 
+### Installation
+
+``pip install git+https://github.com/hendry24/moyalstar``
+
 ### References
 
 - T. Curtright, D. Fairlie, and C. Zachos, A Concise Treatise On Quantum Mechanics In Phase Space (World Scientific Publishing Company, 2013)    
