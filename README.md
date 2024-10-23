@@ -9,7 +9,7 @@ pip install git+https://github.com/hendry24/moyalstar
 
 ### Tutorial
 
-See ``moyalstar_tutorial.ipynb''.
+See ``moyalstar_tutorial.ipynb``.
 
 ### References
 
