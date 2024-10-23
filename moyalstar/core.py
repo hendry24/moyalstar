@@ -1,6 +1,6 @@
 import sympy as sm
 
-from .utils import get_symbols, _get_symbols_0, make_prime, collect_by_diff
+from .utils import get_symbols, _get_symbols_0, make_prime
 
 __all__ = ["bopp",
            "star"]
@@ -115,7 +115,7 @@ def _eval_star(q, do = True):
         
     return out
 
-def star(A, B, do = True, collect = True):
+def star(A, B, do = True):
     """
     The Moyal star-product A(x,p) ★ B(x,p), calculated using the Bopp shift.
     See `bopp`.
@@ -133,10 +133,6 @@ def star(A, B, do = True, collect = True):
     do : bool, default: True
         Whether to evaluate the derivatives and replace the primed variables `xx`,`pp` with the default
         variables `x`,`p`.
-
-    collect : bool, default: True
-        Collect the output by the derivative order. This calls `utils.collect_by_diff` with the module's
-        `W` as the function.
 
     Returns
     -------
@@ -173,8 +169,5 @@ def star(A, B, do = True, collect = True):
         q = sm.expand(A * B)
 
     out = _eval_star(q, do=do)
-
-    if collect:
-        out = collect_by_diff(out)
 
     return out
