@@ -208,6 +208,12 @@ def star(A, B, do = True):
         Whether to evaluate the derivatives and replace the primed variables `xx`,`pp` with the default
         variables `x`,`p`.
 
+    Returns
+    -------
+
+    out : sympy object
+        The Moyal star-product between `A` and `B`.
+
     References
     ----------
     
@@ -236,4 +242,5 @@ def star(A, B, do = True):
         B = make_prime(B)
         q = sm.expand(A * B)
 
-    return _eval_star(q, do=do)
+    out = _eval_star(q, do=do)
+    return out
