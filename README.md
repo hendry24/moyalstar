@@ -19,8 +19,7 @@ See ``moyalstar_tutorial.ipynb``.
 ### Changelog
 
 [0.0.2]
-    - Added collection by derivatives in ``core.star``, which calls ``utils.collect_by_diff`` with the module's ``W`` as the function. The
-      function can be used to group by another function put into the same term as ``W``. If there is no function, the collection is
+    - Added ``utils.collect_by_diff`` to group by derivatives of a function, by default `W`. If there is no function, the collection is
       bypassed.
 
 [0.0.1]
