@@ -96,7 +96,7 @@ def _replace_diff(q):
         q_leftover = sm.Mul(q.args[cut_idx+1:])
         return sm.Mul(*prefactor,
                         sm.Derivative(_replace_diff(q_leftover),
-                                      *[diff_var]*diff_order))
+                                      *[diff_var for _ in range(diff_order)]))
                                     # dxdp is treated separately. 
     else:
         return q

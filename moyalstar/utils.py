@@ -121,7 +121,9 @@ def collect_by_diff(q, W = None):
     def dx_m_dp_n(m, n):
         if m==0 and n==0:
             return W
-        return sm.Derivative(W, *[x]*m, *[p]*n)
+        return sm.Derivative(W, 
+                             *[x for _ in range(m)], 
+                             *[p for _ in range(n)])
     
     return sm.collect(q, [dx_m_dp_n(m, n) for m in range(max_order) 
                                             for n in range(max_order - m)])
