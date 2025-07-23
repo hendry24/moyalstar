@@ -2,6 +2,11 @@ import sympy as sm
 
 from .utils.functions import get_objects, _get_primed_objects, _make_prime, _remove_prime
 from .utils import objects
+from .utils.multiprocessing import mp_config
+
+from multiprocessing import Pool
+import dill
+from functools import partial
 
 __all__ = ["bopp",
            "star"]
@@ -79,7 +84,17 @@ def star(A : sm.Expr, B : sm.Expr, do : bool = True) \
     """
 
     q : sm.Expr
-    out = sm.Add(*[_replace_diff(qq) for qq in q.args])
+        
+    use_mp = mp_config["enable"] and (len(q.args) >= mp_config["min_num_args"])
+    
+    if use_mp:
+        with Pool(mp_config["num_cpus"]) as pool:
+            res = pool.map(_replace_diff_pool_helper,
+                           [dill.dumps(qq) for qq in q.args])
+            out = sm.Add(*[dill.loads(qq_bytes) for qq_bytes in res])
+    
+    else:
+        out = sm.Add(*[_replace_diff(qq) for qq in q.args])
 
     out = _remove_prime(out)
     
@@ -131,17 +146,30 @@ def bopp(q : sm.Expr, left : bool = False) \
                    p : p - sgn * I/2 * dxx})
     return out.expand()
 
-def _replace_diff(q : sm.Expr) \
+def _replace_diff_pool_helper(q_bytes):
+    """
+    The package usage involves `sympy.Function`, which the
+    package `pickle`, used by `multiprocessing`, cannot pickle.
+    As a workaround, here we use `dill` to pickle everything before 
+    sending the job to the worker processes. This is the topmost
+    function called by a worker process, which loads the bytes input
+    by the main process, reconstructing the SymPy objects for 
+    `_replace_diff` to work with. Then, the output is pickled once 
+    again when sent back to the main process. 
+    """
+    q = dill.loads(q_bytes)
+    return dill.dumps(_replace_diff(q))
+
+def _replace_diff(q : str) \
     -> sm.Expr:
     """
     Recursively replace the differential operator symbols (dxx and dpp),
     with the appropriate `sympy.Derivative` objects.
     """
-    q = sm.sympify(q)
     
     fido = _first_index_and_diff_order(q)
 
-    if fido:
+    if fido: # no more recursion if fido is None
         cut_idx, diff_var, diff_order = fido
         prefactor = q.args[:cut_idx]
         q_leftover = sm.Mul(*q.args[cut_idx+1:])
@@ -154,8 +182,8 @@ def _replace_diff(q : sm.Expr) \
         and letting the rest of the factors be dealt with in the next recursion
         node, making the recursion more efficient. 
         """
-    else:
-        return q
+    
+    return q
 
 def _first_index_and_diff_order(q : sm.Expr) \
     -> None | tuple[int, objects.xx|objects.pp, int|sm.Number]:
@@ -210,4 +238,4 @@ def _first_index_and_diff_order(q : sm.Expr) \
         if dpp in qq.args:
             return idx, pp, qq.args[1]
         
-    return None # This stops the recursion. See _replace_diff below.
+    return None # This stops the recursion. See _replace_diff.

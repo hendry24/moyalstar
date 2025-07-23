@@ -7,7 +7,7 @@ class moyalstarObj(Symbol):
     is_commutative = NotImplemented
     is_real = NotImplemented
     
-    def __new__(cls):
+    def __new__(cls, name = "", **assumptions):
         return super().__new__(cls, 
                                cls.name, 
                                commutative = cls.is_commutative,
