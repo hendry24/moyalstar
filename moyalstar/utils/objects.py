@@ -1,8 +1,8 @@
-from sympy import Symbol
+import sympy as sm
 
-__all__ = ["x", "p"]
+__all__ = ["q", "p", "W"]
 
-class moyalstarObj(Symbol):
+class moyalstarObj(sm.Symbol):
     name = NotImplemented
     is_commutative = NotImplemented
     is_real = NotImplemented
@@ -13,8 +13,8 @@ class moyalstarObj(Symbol):
                                commutative = cls.is_commutative,
                                real = cls.is_real)
     
-class x(moyalstarObj):
-    name = r"x"
+class q(moyalstarObj):
+    name = r"q"
     is_commutative = True
     is_real = True
     
@@ -23,8 +23,8 @@ class p(moyalstarObj):
     is_commutative = True
     is_real = True
 
-class xx(moyalstarObj):
-    name = r"x'"
+class qq(moyalstarObj):
+    name = r"q'"
     is_commutative = False
     is_real = False
     
@@ -33,8 +33,8 @@ class pp(moyalstarObj):
     is_commutative = False
     is_real = False
     
-class dxx(moyalstarObj):
-    name = r"\partial_{x'}"
+class dqq(moyalstarObj):
+    name = r"\partial_{q'}"
     is_commutative = False
     is_real = False
     
@@ -42,3 +42,7 @@ class dpp(moyalstarObj):
     name = r"\partial_{p'}"
     is_commutative = False
     is_real = False
+
+class W(sm.Function):
+    def __new__(cls):
+        return sm.Function(r"W")(q(), p())
