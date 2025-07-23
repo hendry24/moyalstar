@@ -1,12 +1,95 @@
 import sympy as sm
 
-from .utils import get_symbols, _get_symbols_0, make_prime
+from .utils.functions import get_objects, _get_primed_objects, _make_prime, _remove_prime
+from .utils import objects
 
 __all__ = ["bopp",
            "star"]
 
 
-def bopp(q, left=False):
+def star(A : sm.Expr, B : sm.Expr, do : bool = True) \
+    -> sm.Expr:
+    """
+    The Moyal star-product A(x,p) ★ B(x,p), calculated using the Bopp shift.
+
+    Parameters
+    ----------
+
+    A : sympy.Expr
+        Left-hand-side operand. Only one of this and `B` may contain a `sympy.Function`; else an exception
+        is raised.
+
+    B : sympy.Expr
+        Right-hand-side operand, similar to `A`.
+        
+    do : bool
+        Whether to do the derivative. Calling `.doit` with to the output wih this argument set to `False`
+        is equivalent to the output with this argument set to `True`.
+
+    Returns
+    -------
+
+    out : sympy.Expr
+        The Moyal star-product between `A` and `B`.
+
+    References
+    ----------
+    
+        T. Curtright, D. Fairlie, and C. Zachos, A Concise Treatise On Quantum Mechanics In Phase Space (World Scientific Publishing Company, 2013)    
+
+        https://physics.stackexchange.com/questions/578522/why-does-the-star-product-satisfy-the-bopp-shift-relations-fx-p-star-gx-p
+    
+    See Also
+    --------
+    
+    moyalstar.bopp : Bopp shift the input expression. 
+    
+    """
+    
+    any_phase_space_variable_in_A = bool(A.atoms(objects.x, objects.p))
+    any_phase_space_variable_in_B = bool(B.atoms(objects.x, objects.p))
+    if (not(any_phase_space_variable_in_A) or 
+        not (any_phase_space_variable_in_B)):
+        return A*B
+
+    is_function_inside_A = bool(A.atoms(sm.Function))
+    is_function_inside_B = bool(B.atoms(sm.Function))
+    if is_function_inside_A and is_function_inside_B:
+        msg = "One of A and B must be sympy.Function-free to be correctly Bopp shifted."
+        raise ValueError(msg)
+    
+    if is_function_inside_A:
+        A = _make_prime(A)
+        B = bopp(B, left=True)
+        q = (B * A).expand()
+    else:
+        A = bopp(A, left=False)
+        B = _make_prime(B)
+        q = (A * B).expand()
+
+    # Expanding is necessary to ensure that all arguments of q contain no Add objects.
+    
+    """
+    The ★-product evaluation routine called after Bopp shifting, whence
+    the primed objects are no longer needed. This function loops through
+    the arguments of the input `q` (generally an `Add` object) and replaces 
+    the primed objects by the appropriate, functional Objects, i.e., the unprimed
+    variables and `sympy.Derivative`. For the derivative objects, this is recursively 
+    done by `_replace_diff`. This function then replaces x' and p' by x and p, respectively.
+    """
+
+    q : sm.Expr
+    out = sm.Add(*[_replace_diff(qq) for qq in q.args])
+
+    out = _remove_prime(out)
+    
+    if do:
+        out = out.doit()
+        
+    return out
+
+def bopp(q : sm.Expr, left : bool = False) \
+    -> sm.Expr:
     """
     Bopp shift the input quantity for the calculation of the Moyal star-product. 
 
@@ -37,29 +120,73 @@ def bopp(q, left=False):
         https://physics.stackexchange.com/questions/578522/why-does-the-star-product-satisfy-the-bopp-shift-relations-fx-p-star-gx-p
 
     """
+    
+    I, x, p, W = get_objects()
+    xx, pp, dxx, dpp = _get_primed_objects()
 
-    x0, p0 = _get_symbols_0()
-    I, W, x, p, xx, pp, ddx, ddp = get_symbols()
-
-    if not(q.is_commutative):
-        msg = "Cannot Bopp shift with primed variables present."
-        raise ValueError(msg)
-
-    q = q.subs({x:x0, p:p0})
     sgn = 1
     if left:
         sgn = -1
-    out = q.subs({x0 : x + sgn * I/2 * ddp,
-                   p0 : p - sgn * I/2 * ddx})
-    return sm.expand(out)
+    out = q.subs({x : x + sgn * I/2 * dpp,
+                   p : p - sgn * I/2 * dxx})
+    return out.expand()
 
-def _first_index_and_diff_order(q):
+def _replace_diff(q : sm.Expr) \
+    -> sm.Expr:
     """
-    Here q is one term in the expanded sum containing no sum at all.
-    q.args thus give its factors.
+    Recursively replace the differential operator symbols (dxx and dpp),
+    with the appropriate `sympy.Derivative` objects.
+    """
+    q = sm.sympify(q)
+    
+    fido = _first_index_and_diff_order(q)
+
+    if fido:
+        cut_idx, diff_var, diff_order = fido
+        prefactor = q.args[:cut_idx]
+        q_leftover = sm.Mul(*q.args[cut_idx+1:])
+        return sm.Mul(*prefactor,
+                        sm.Derivative(_replace_diff(q_leftover),
+                                      *[diff_var]*diff_order))
+        """
+        With this code, we can afford to replace any power of the first
+        dxx or dpp we encounter, instead of replacing only the base
+        and letting the rest of the factors be dealt with in the next recursion
+        node, making the recursion more efficient. 
+        """
+    else:
+        return q
+
+def _first_index_and_diff_order(q : sm.Expr) \
+    -> None | tuple[int, objects.xx|objects.pp, int|sm.Number]:
+    """
+    
+    Get the index of the first differential operator appearing
+    in the Bopp-shifted expression (dxx or dpp), either xx or pp, and 
+    the differential order (the power of dxx or dpp).
+    
+    Parameters
+    ----------
+    
+    q : sympy.Expr
+        A summand in the expanded Bopp-shifted expression to be
+        evaluated. `q.args` thus give its factors.
+        
+    Returns
+    -------
+    
+    idx : int
+        The index in `q.args` where the first `dxx` or `dpp` object is contained.
+        
+    diff_var : `xx` or `pp`
+        The differentiation variable. Either `xx` or `pp`.
+        
+    diff_order : int or sm.Number
+        The order of the differentiation contained in the `idx`-th argument of 
+        `q`, i.e., the exponent of `dxx` or `dpp` encountered.
     """
 
-    I, W, x, p, xx, pp, ddx, ddp = get_symbols()
+    xx, pp, dxx, dpp = _get_primed_objects()
 
     """
     Everything to the right of the first "derivative operator" symbol
@@ -70,104 +197,17 @@ def _first_index_and_diff_order(q):
     derivative operators.
     """
     for idx, qq in enumerate(q.args): 
-        if qq == ddx:
+        
+        if qq == dxx:
             return idx, xx, 1
-        if ddx in qq.args:
+        if dxx in qq.args:
+            # We have dxx**n for n>1. For a Pow object, the second argument gives
+            # the exponent; in this case, the differentiation order.
             return idx, xx, qq.args[1]
         
-        if qq == ddp:
+        if qq == dpp:
             return idx, pp, 1
-        if ddp in qq.args:
+        if dpp in qq.args:
             return idx, pp, qq.args[1]
         
-    return None
-
-def _replace_diff(q):
-    if isinstance(q, sm.Add):
-        msg = "_replace_diff error. Input q must not be a sympy.Add object"
-        msg += "since q.args is expected to give its factors."
-        raise ValueError(msg)
-    
-    fido = _first_index_and_diff_order(q)
-
-    if fido:
-        cut_idx, diff_var, diff_order = fido
-        prefactor = q.args[:cut_idx]
-        q_leftover = sm.Mul(*q.args[cut_idx+1:])
-        return sm.Mul(*prefactor,
-                        sm.Derivative(_replace_diff(q_leftover),
-                                      *[diff_var for _ in range(diff_order)]))
-                                    # dxdp is treated separately. 
-    else:
-        return q
-
-def _eval_star(q, do = True):
-    I, W, x, p, xx, pp, ddx, ddp = get_symbols()
-    
-    q = sm.expand(q)
-
-    out = 0
-    for qq in q.args: # each term in the sum, order does not matter. 
-        out += _replace_diff(qq)
-
-    if do:
-        out = out.doit().subs({xx:x, pp:p})
-        
-    return out
-
-def star(A, B, do = True):
-    """
-    The Moyal star-product A(x,p) ★ B(x,p), calculated using the Bopp shift.
-    See `bopp`.
-
-    Parameters
-    ----------
-
-    A : sympy object
-        Left-hand-side operand. Only one of this and `B` may contain a `sympy.Function`; else an exception
-        is raised. Must be unprimed.
-
-    B : sympy object
-        Right-hand-side operand, similar to `A`.
-
-    do : bool, default: True
-        Whether to evaluate the derivatives and replace the primed variables `xx`,`pp` with the default
-        variables `x`,`p`.
-
-    Returns
-    -------
-
-    out : sympy object
-        The Moyal star-product between `A` and `B`.
-
-    References
-    ----------
-    
-        T. Curtright, D. Fairlie, and C. Zachos, A Concise Treatise On Quantum Mechanics In Phase Space (World Scientific Publishing Company, 2013)    
-
-        https://physics.stackexchange.com/questions/578522/why-does-the-star-product-satisfy-the-bopp-shift-relations-fx-p-star-gx-p
-    """
-
-    if not(A.is_commutative) or not(B.is_commutative):
-        msg = "A and B must be unprimed. Consider substituting xx and pp by x and p, respectively."
-        raise ValueError(msg)
-
-    is_function_inside_A = bool(A.atoms(sm.Function))
-    is_function_inside_B = bool(B.atoms(sm.Function))
-
-    if is_function_inside_A and is_function_inside_B:
-        msg = "One of A and B must be sympy.Function-free to be correctly Bopp shifted."
-        raise ValueError(msg)
-    
-    if is_function_inside_A:
-        A = make_prime(A)
-        B = bopp(B, left=True)
-        q = sm.expand(B * A)    # Expand gives a sum of terms. Redundancy in _eval.
-    else:
-        A = bopp(A, left=False)
-        B = make_prime(B)
-        q = sm.expand(A * B)
-
-    out = _eval_star(q, do=do)
-
-    return out
+    return None # This stops the recursion. See _replace_diff below.
