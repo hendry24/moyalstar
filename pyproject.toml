@@ -16,10 +16,9 @@ description = "Symbolic evaluation of Moyal star-products, with easy interface f
 readme = "README_PyPI.md"
 license = {file = "LICENSE"}
 keywords = [
-    "Moyal",
-    "star",
-    "Wigner",
-    "quantum",
+    "Moyal star-product",
+    "Wigner transform",
+    "Quantum phase space",
 ]
 classifiers = [
     "Development Status :: 5 - Production/Stable",

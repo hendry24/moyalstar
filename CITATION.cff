@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 title: "moyalstar: a Moyal star-product calculator for the quantum phase space formalism"
-version: 1.8.0
+version: 1.0.0
 license: "GPLv3"
 type: software
 abstract: ""
