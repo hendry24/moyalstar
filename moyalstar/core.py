@@ -1,24 +1,22 @@
 import sympy as sm
-from sympy.core.operations import AssocOp
 
 from .utils.functions import get_objects, _get_primed_objects, _make_prime, _remove_prime
 from .utils import objects
-from .utils.multiprocessing import mp_config
-
-from multiprocessing import Pool
+from .utils.multiprocessing import _mp_helper
 import dill
 
-__all__ = ["bopp",
-           "star"]
+__all__ = ["Bopp",
+           "Star"]
 
-def star(*args, do=True):
-    if len(args) == 0:
-        return sm.Integer(1)
-    
-    out = sm.sympify(args[0])
-    for arg in args[1:]:
-        out = _star_base(out, sm.sympify(arg), do = do)
-    return out
+class Star():
+    def __new__(cls, *args, do : bool = True):
+        if len(args) == 0:
+            return sm.Integer(1)
+        
+        out = sm.sympify(args[0])
+        for arg in args[1:]:
+            out = _star_base(out, sm.sympify(arg), do = do)
+        return out
     
 def _star_base(A : sm.Expr, B : sm.Expr, do : bool = True) \
     -> sm.Expr:
@@ -73,10 +71,10 @@ def _star_base(A : sm.Expr, B : sm.Expr, do : bool = True) \
     
     if is_function_inside_A:
         A = _make_prime(A)
-        B = bopp(B, left=True)
+        B = Bopp(B, left=True)
         X = (B * A).expand()
     else:
-        A = bopp(A, left=False)
+        A = Bopp(A, left=False)
         B = _make_prime(B)
         X = (A * B).expand()
 
@@ -96,27 +94,17 @@ def _star_base(A : sm.Expr, B : sm.Expr, do : bool = True) \
         X_args = X.args
     else:
         X_args = [X]
-        
-    use_mp = mp_config["enable"] and (len(X.args) >= mp_config["min_num_args"])
     
-    if use_mp:
-        with Pool(mp_config["num_cpus"]) as pool:
-            res = pool.map(_replace_diff_pool_helper,
-                           [dill.dumps(X_) for X_ in X_args])
-            out = sm.Add(*[dill.loads(X_bytes) for X_bytes in res])
-    
-    else:
-        out = sm.Add(*[_replace_diff(X_) for X_ in X_args])
+    out = sm.Add(*_mp_helper(X_args, _replace_diff))
 
     out = _remove_prime(out)
     
     if do:
         out = out.doit()
         
-    return out
+    return out.expand()
 
-def bopp(A : sm.Expr, left : bool = False) \
-    -> sm.Expr:
+class Bopp():
     """
     Bopp shift the input quantity for the calculation of the Moyal star-product. 
 
@@ -148,29 +136,16 @@ def bopp(A : sm.Expr, left : bool = False) \
 
     """
     
-    I, q, p, W = get_objects()
-    qq, pp, dqq, dpp = _get_primed_objects()
+    def __new__(cls, A : sm.Expr, left : bool = False):
+        I, q, p, W = get_objects()
+        qq, pp, dqq, dpp = _get_primed_objects()
 
-    sgn = 1
-    if left:
-        sgn = -1
-    out = A.subs({q : q + sgn * I/2 * dpp,
-                   p : p - sgn * I/2 * dqq})
-    return out.expand()
-
-def _replace_diff_pool_helper(A_bytes : bytes):
-    """
-    The package usage involves `sympy.Function`, which the
-    package `pickle`, used by `multiprocessing`, cannot pickle.
-    As a workaround, here we use `dill` to pickle everything before 
-    sending the job to the worker processes. This is the topmost
-    function called by a worker process, which loads the bytes input
-    by the main process, reconstructing the SymPy objects for 
-    `_replace_diff` to work with. Then, the output is pickled once 
-    again when sent back to the main process. 
-    """
-    A = dill.loads(A_bytes)
-    return dill.dumps(_replace_diff(A))
+        sgn = 1
+        if left:
+            sgn = -1
+        out = A.subs({q : q + sgn * I/2 * dpp,
+                    p : p - sgn * I/2 * dqq})
+        return out.expand()
 
 def _replace_diff(A : sm.Expr) \
     -> sm.Expr:

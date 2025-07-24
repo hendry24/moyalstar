@@ -1,4 +1,9 @@
 import os
+import sympy as sm
+from multiprocessing import Pool
+import dill
+from functools import partial
+
 from typing import TypedDict
 
 ############################################################
@@ -6,6 +11,8 @@ from typing import TypedDict
 __all__ = ["mp_config"]
 
 ############################################################
+global _mp_is_running
+_mp_is_running = False
 
 # NOTE: Same code as in pybolano.
 
@@ -15,7 +22,7 @@ class mp_dict(TypedDict):
     min_num_args: int
 
     def __setitem__(self, key, value):
-        valid_keys = ["enable", "num_cpus", "min_num_args"]
+        valid_keys = ["enable", "num_cpus", "min_num_args", "_in_use"]
         if key not in valid_keys:
             msg = f"The key [{key}] is not valid. Valid keys: {valid_keys}."
             raise KeyError(msg)
@@ -37,3 +44,38 @@ mp_config["num_cpus"] = os.cpu_count()
 mp_config["min_num_args"] = 2
 # Skip multiprocessing if the number of elements is small,
 # in which case a single core execution is enough.
+
+def _mp_helper(A_args : sm.Expr, foo : callable):
+    """
+    Apply `foo` to the arguments `A_args` of `A`, using multiprocessing
+    if possible.
+    """
+    global _mp_is_running
+    
+    use_mp = (not(_mp_is_running) and 
+            mp_config["enable"] and 
+            (len(A_args) >= mp_config["min_num_args"]))
+    
+    if use_mp:
+        _mp_is_running = True
+        with Pool(mp_config["num_cpus"]) as pool:
+            res = pool.map(partial(_pool_helper, foo=foo),
+                            [dill.dumps(X_) for X_ in A_args])
+        _mp_is_running = False
+        return [dill.loads(X_bytes) for X_bytes in res]
+    else:
+        return [foo(_A_) for _A_ in A_args]
+    
+def _pool_helper(_A_bytes : bytes, foo : callable):
+    """
+    The package usage involves `sympy.Function`, which the
+    package `pickle`, used by `multiprocessing`, cannot pickle.
+    As a workaround, here we use `dill` to pickle everything before 
+    sending the job to the worker processes. This is the topmost
+    function called by a worker process, which loads the bytes input
+    by the main process, reconstructing the SymPy objects for 
+    `_replace_diff` to work with. Then, the output is pickled once 
+    again when sent back to the main process. 
+    """
+    _A = dill.loads(_A_bytes)
+    return dill.dumps(foo(_A))

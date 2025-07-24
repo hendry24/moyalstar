@@ -1,6 +1,6 @@
 import sympy as sm
 
-__all__ = ["q", "p", "W"]
+__all__ = ["t", "q", "p", "W"]
 
 class moyalstarObj(sm.Symbol):
     name = NotImplemented
@@ -12,7 +12,12 @@ class moyalstarObj(sm.Symbol):
                                cls.name, 
                                commutative = cls.is_commutative,
                                real = cls.is_real)
-    
+
+class t(moyalstarObj):
+    name = r"t"
+    is_commutative = True
+    is_real = True
+
 class q(moyalstarObj):
     name = r"q"
     is_commutative = True

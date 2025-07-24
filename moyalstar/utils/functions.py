@@ -29,7 +29,7 @@ def get_objects() \
     I = sm.I
     q = objects.q()
     p = objects.p()
-    W = sm.Function("W")(q,p)
+    W = objects.W()
     return I, q, p, W
 
 def _get_primed_objects() \
