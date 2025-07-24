@@ -24,7 +24,7 @@ class WignerTransform():
             res = _mp_helper(A.args, WignerTransform)
             if isinstance(A, sm.Add):
                 return sm.Add(*res)
-            return Star(*res, do=True).expand()
+            return Star(*res).expand()
         
         if isinstance(A, sm.Pow):
             base : moyalstarOp = A.args[0]

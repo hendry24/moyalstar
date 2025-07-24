@@ -9,16 +9,16 @@ __all__ = ["Bopp",
            "Star"]
 
 class Star():
-    def __new__(cls, *args, do : bool = True):
+    def __new__(cls, *args):
         if len(args) == 0:
             return sm.Integer(1)
         
         out = sm.sympify(args[0])
         for arg in args[1:]:
-            out = _star_base(out, sm.sympify(arg), do = do)
+            out = _star_base(out, sm.sympify(arg))
         return out
     
-def _star_base(A : sm.Expr, B : sm.Expr, do : bool = True) \
+def _star_base(A : sm.Expr, B : sm.Expr) \
     -> sm.Expr:
     """
     The Moyal star-product A(q,p) ★ B(q,p), calculated using the Bopp shift.
@@ -32,10 +32,6 @@ def _star_base(A : sm.Expr, B : sm.Expr, do : bool = True) \
 
     B : sympy.Expr
         Right-hand-side operand, similar to `A`.
-        
-    do : bool
-        Whether to do the derivative. Calling `.doit` with to the output wih this argument set to `False`
-        is equivalent to the output with this argument set to `True`.
 
     Returns
     -------
@@ -98,11 +94,8 @@ def _star_base(A : sm.Expr, B : sm.Expr, do : bool = True) \
     out = sm.Add(*_mp_helper(X_args, _replace_diff))
 
     out = _remove_prime(out)
-    
-    if do:
-        out = out.doit()
         
-    return out.expand()
+    return out.doit().expand()
 
 class Bopp():
     """
