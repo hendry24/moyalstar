@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "moyalstar"
+version = "0.0.1"
+dependencies = [
+    "sympy >= 1.13.3"
+]
+requires-python = ">= 3.8"
+authors = [
+    {name = "Hendry Minfui Lim", email = "hendry01@ui.ac.id"}
+]
+description = "Symbolic evaluation of Moyal star-products, with easy interface for the Wigner transform of the Lindblad Master Equation."
+readme = "README_PyPI.md"
+license = {file = "LICENSE"}
+keywords = [
+    "Moyal",
+    "star",
+    "Wigner",
+    "quantum",
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+]
+
+[project.urls]
+Repository = "https://github.com/hendry24/moyalstar"
+Issues = "https://github.com/hendry24/moyalstar/issues"
+Tutorial = "https://github.com/hendry24/moyalstar/blob/main/moyalstar_tutorial.ipynb"
