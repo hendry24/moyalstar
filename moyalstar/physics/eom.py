@@ -4,7 +4,7 @@ from functools import cached_property
 
 from .wigner_transform import WignerTransform
 from ..utils import objects
-from .hilbert_ops import moyalstarOp, densityOp, Dagger
+from .hilbert_ops import densityOp, Dagger
 
 class _AddOnlyExpr(sm.Expr):
     def __pow__(self, other):
@@ -85,8 +85,8 @@ class LindbladDissipator(_AddOnlyExpr):
     
 class LindbladMasterEquation(sm.Basic):
     def __new__(cls, 
-                H : sm.Expr, 
-                dissipators : list[list[sm.Expr, sm.Expr]]):
+                H : sm.Expr,
+                dissipators : list[list[sm.Expr, sm.Expr]] = []):
         H = sm.sympify(H)
         dissipators = sm.sympify(dissipators)
         return super().__new__(cls, H, dissipators)

@@ -16,7 +16,7 @@ _mp_is_running = False
 
 # NOTE: Same code as in pybolano.
 
-class mp_dict(TypedDict):
+class _mp_dict(TypedDict):
     enable: bool
     num_cpus: int
     min_num_args: int
@@ -38,10 +38,10 @@ class mp_dict(TypedDict):
 
 ############################################################
 
-mp_config = mp_dict()
-mp_config["enable"] = True
-mp_config["num_cpus"] = os.cpu_count()
-mp_config["min_num_args"] = 2
+MP_CONFIG = _mp_dict()
+MP_CONFIG["enable"] = True
+MP_CONFIG["num_cpus"] = os.cpu_count()
+MP_CONFIG["min_num_args"] = 2
 # Skip multiprocessing if the number of elements is small,
 # in which case a single core execution is enough.
 
@@ -53,12 +53,12 @@ def _mp_helper(A_args : sm.Expr, foo : callable):
     global _mp_is_running
     
     use_mp = (not(_mp_is_running) and 
-            mp_config["enable"] and 
-            (len(A_args) >= mp_config["min_num_args"]))
+            MP_CONFIG["enable"] and 
+            (len(A_args) >= MP_CONFIG["min_num_args"]))
     
     if use_mp:
         _mp_is_running = True
-        with Pool(mp_config["num_cpus"]) as pool:
+        with Pool(MP_CONFIG["num_cpus"]) as pool:
             res = pool.map(partial(_pool_helper, foo=foo),
                             [dill.dumps(X_) for X_ in A_args])
         _mp_is_running = False
