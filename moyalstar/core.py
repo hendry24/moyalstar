@@ -3,7 +3,6 @@ import sympy as sm
 from .utils.functions import get_objects, _get_primed_objects, _make_prime, _remove_prime
 from .utils import objects
 from .utils.multiprocessing import _mp_helper
-import dill
 
 __all__ = ["Bopp",
            "Star"]
@@ -94,7 +93,7 @@ def _star_base(A : sm.Expr, B : sm.Expr) \
     out = sm.Add(*_mp_helper(X_args, _replace_diff))
 
     out = _remove_prime(out)
-        
+                
     return out.doit().expand()
 
 class Bopp():
@@ -104,12 +103,17 @@ class Bopp():
     `A(q,p)★B(q,p) = A(q + (i/2)*dpp, p - (i/2)*dqq) * B(qq, pp)`
 
     `A(x,p)★B(x,p) = B(q - (i/2)*dpp, p + (i/2)*dqq) * A(qq, pp)`
+    
+    In the current version, this operation attempts to remove all `sympy.Derivative`
+    in the input expression to ensure a correct Bopp shift. This is why `Star` only
+    accepts one 'UndefinedFunction' at maximum, as the algorithm can just Bopp-shift
+    the other derivative-free expression. 
             
     Parameters
     ----------
 
-    A : sympy object
-        Quantity to be Bopp-shifted.
+    A : sympy.Expr
+        Quantity to be Bopp-shifted, should contain `objects.q` or `objects.p`.
 
     left : bool, default: False
         Whether the star-product operator is to the left of `A`. 
@@ -132,6 +136,25 @@ class Bopp():
     def __new__(cls, A : sm.Expr, left : bool = False):
         I, q, p, W = get_objects()
         qq, pp, dqq, dpp = _get_primed_objects()
+        
+        if bool(A.atoms(sm.Derivative)):
+            A = A.doit()
+            if bool(A.atoms(sm.Derivative)):
+                s = "'A' contains persistent derivative(s), most possibly working on an UndefinedFunction."
+                s += "The function has tried to call 'A.doit()' but couldn't get rid of the 'Derivative"
+                s += "objecs. This leads to faulty Bopp-shifting which results in incorrect ★-products evaluation."
+                raise ValueError(s)
+            
+        """
+        The derivative evaluation attempt in `Bopp` will deal with intermediate
+        unevaluated derivative(s) during the ★-product chain in `Star`. Since
+        `Bopp` is not called on the operand containing an UndefinedFunction, this
+        effectively keeps the derivative(s) operating on expressions containing
+        the UndefinedFunction from being evaluated, resulting in a "prettier" output.
+        
+        The evaluation-prohibition is not applied in the current version, but the above code
+        is nevertheless useful to catch errors, so we keep it there.
+        """
 
         sgn = 1
         if left:

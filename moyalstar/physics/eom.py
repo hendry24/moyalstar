@@ -4,6 +4,7 @@ from functools import cached_property
 
 from .wigner_transform import WignerTransform
 from ..utils import objects
+from ..utils.functions import collect_by_derivative
 from .hilbert_ops import densityOp, Dagger
 
 class _AddOnlyExpr(sm.Expr):
@@ -84,6 +85,8 @@ class LindbladDissipator(_AddOnlyExpr):
         return out
     
 class LindbladMasterEquation(sm.Basic):
+    collect_by_derivative = True
+    
     def __new__(cls, 
                 H : sm.Expr,
                 dissipators : list[list[sm.Expr, sm.Expr]] = []):
@@ -125,9 +128,11 @@ class LindbladMasterEquation(sm.Basic):
     
     @cached_property
     def wigner_transform(self):
-        self.rhs : sm.Expr
-        return sm.Equality(self.lhs.wigner_transform,
-                           WignerTransform(self.rhs.doit().expand()))
+        lhs = self.lhs.wigner_transform
+        rhs = WignerTransform(self.rhs.doit().expand())
+        if self.collect_by_derivative:
+            rhs = collect_by_derivative(rhs, lhs.args[0])
+        return sm.Equality(lhs, rhs)
     
     def __str__(self):
         return sm.latex(sm.Equality(self.lhs, self.rhs))
