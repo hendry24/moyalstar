@@ -3,8 +3,6 @@ import sympy as sm
 from .hilbert_ops import moyalstarOp
 from ..core import Star
 from ..utils.multiprocessing import _mp_helper
-
-EXPAND_DERIVATIVE = True
             
 class WignerTransform():
 
@@ -26,7 +24,7 @@ class WignerTransform():
             res = _mp_helper(A.args, WignerTransform)
             if isinstance(A, sm.Add):
                 return sm.Add(*res)
-            return Star(*res, do=EXPAND_DERIVATIVE).expand()
+            return Star(*res, do=True).expand()
         
         if isinstance(A, sm.Pow):
             base : moyalstarOp = A.args[0]
