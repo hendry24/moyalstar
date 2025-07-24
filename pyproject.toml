@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "moyalstar"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
     "sympy >= 1.13.3"
 ]
@@ -12,7 +12,7 @@ requires-python = ">= 3.8"
 authors = [
     {name = "Hendry Minfui Lim", email = "hendry01@ui.ac.id"}
 ]
-description = "Symbolic evaluation of Moyal star-products, with easy interface for the Wigner transform of the Lindblad Master Equation."
+description = "A Moyal star-product calculator for the quantum phase space formalism"
 readme = "README_PyPI.md"
 license = {file = "LICENSE"}
 keywords = [
