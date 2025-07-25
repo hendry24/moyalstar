@@ -33,7 +33,7 @@ class _TimeDerivativeOfDensityOp(sm.Basic):
     def _latex(self, printer):
         return str(self)
     
-class LindbladDissipator(_AddOnlyExpr):
+class _LindbladDissipator(_AddOnlyExpr):
     def __new__(cls, rate = 1, operator_1 = 1, operator_2 = None):
         rate = sm.sympify(rate)
         
@@ -110,7 +110,7 @@ class LindbladMasterEquation(sm.Basic):
                 raise ValueError(r"Invalid dissipator specifier : {%s}"
                                  % (inpt))
             rate, operator_1, operator_2 = inpt
-            out.append(LindbladDissipator(rate=rate, 
+            out.append(_LindbladDissipator(rate=rate, 
                                           operator_1=operator_1, 
                                           operator_2=operator_2))
         return out
