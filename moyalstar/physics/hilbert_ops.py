@@ -1,5 +1,5 @@
 import sympy as sm
-from ..utils import objects
+from . import objects
 
 class moyalstarOp(sm.Expr):
     

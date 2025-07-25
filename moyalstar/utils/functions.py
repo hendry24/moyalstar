@@ -1,39 +1,11 @@
 import sympy as sm
 from sympy.core.function import UndefinedFunction
-from . import objects
+from ..physics import scalars
 
-__all__ = ["get_objects",
-           "collect_by_derivative"]
-
-def get_objects() \
-    -> tuple[sm.Expr, objects.q, objects.p, UndefinedFunction]:
-    """
-    Get the basic sympy-compliant symbolic objects.
-    
-    Returns
-    -------
-
-    I : sympy.Expr
-        The imaginary number compatible with sympy.
-
-    q : sympy.Expr
-        Canonical position variable, equivalent to the Wigner transform of the canonical position operator.
-
-    p : sympy.Expr
-        Canonical momentum variable, equivalent to the Wigner transform of the canonical momentum operator.
-        
-    W : sympy.Expr
-        The Wigner function of q and p, `simpy.Function("W")(q,p)'.
-
-    """
-    I = sm.I
-    q = objects.q()
-    p = objects.p()
-    W = objects.W()
-    return I, q, p, W
+__all__ = ["collect_by_derivative"]
 
 def _get_primed_objects() \
-    -> tuple[objects.qq, objects.pp, objects.dqq, objects.dpp]:
+    -> tuple[scalars._qq, scalars._pp, scalars._dqq, scalars._dpp]:
     """
     Get the primed non-commutative symbols.
     
@@ -59,7 +31,7 @@ def _get_primed_objects() \
 
     """
     
-    return objects.qq(), objects.pp(), objects.dqq(), objects.dpp()
+    return scalars._qq(), scalars._pp(), scalars._dqq(), scalars._dpp()
 
 def _make_prime(A : sm.Expr) \
     -> sm.Expr:
@@ -70,7 +42,7 @@ def _make_prime(A : sm.Expr) \
     Parameters
     ----------
 
-    A : sympy object
+    A : sympy.Expr
         A sympy object, e.g. `sympy.Symbol' or `sympy.Add', allowing its `q` and `p` 
         to be replaced by `qq` and `pp`. Refer to `get_symbols' for these variables.
 
@@ -82,7 +54,8 @@ def _make_prime(A : sm.Expr) \
 
     """
     
-    I, q, p, W = get_objects()
+    q = scalars.q()
+    p = scalars.p()
     qq, pp, ddx, ddp = _get_primed_objects()
     
     return A.subs({q : qq,
@@ -91,7 +64,8 @@ def _make_prime(A : sm.Expr) \
 def _remove_prime(A : sm.Expr) \
     -> sm.Expr:
     
-    I, q, p, W = get_objects()
+    q = scalars.q()
+    p = scalars.p()
     qq, pp, ddx, ddp = _get_primed_objects()
     
     return A.subs({qq : q,
@@ -125,9 +99,10 @@ def collect_by_derivative(A : sm.Expr,
     if not(A.atoms(sm.Function)):
         return A
 
-    I, q, p, W = get_objects()
+    q = scalars.q()
+    p = scalars.p()
     if f is None:
-        f = W
+        f = scalars.W()
 
     max_order = max([A_.derivative_count 
                      for A_ in list(A.atoms(sm.Derivative))])

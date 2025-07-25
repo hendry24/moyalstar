@@ -3,9 +3,11 @@ import sympy.physics.quantum as smq
 from functools import cached_property
 
 from .wigner_transform import WignerTransform
-from ..utils import objects
+from . import scalars
 from ..utils.functions import collect_by_derivative
 from .hilbert_ops import densityOp, Dagger
+
+__all__ = ["LindbladMasterEquation"]
 
 class _AddOnlyExpr(sm.Expr):
     def __pow__(self, other):
@@ -19,13 +21,13 @@ class _AddOnlyExpr(sm.Expr):
     __rtruediv__ = __pow__
     
 class _TimeDerivativeOfDensityOp(sm.Basic):
-    wigner_transform = sm.Derivative(objects.W(), objects.t())
+    wigner_transform = sm.Derivative(scalars.W(), scalars.t())
     
     def __new__(cls):
         return super().__new__(cls)
     
     def __str__(self):
-        return sm.latex(sm.Derivative(densityOp(), objects.t()))
+        return sm.latex(sm.Derivative(densityOp(), scalars.t()))
     
     def __repr__(self):
         return str(self)

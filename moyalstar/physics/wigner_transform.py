@@ -3,7 +3,7 @@ import sympy as sm
 from .hilbert_ops import moyalstarOp
 from ..core import Star
 from ..utils.multiprocessing import _mp_helper
-            
+
 class WignerTransform():
 
     def __new__(cls, A : sm.Expr | moyalstarOp):

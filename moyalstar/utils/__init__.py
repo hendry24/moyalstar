@@ -1,3 +1,3 @@
 from .functions import *
-from .objects import *
+from ..physics.scalars import *
 from .multiprocessing import *

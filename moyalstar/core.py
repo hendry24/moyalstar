@@ -1,7 +1,7 @@
 import sympy as sm
 
-from .utils.functions import get_objects, _get_primed_objects, _make_prime, _remove_prime
-from .utils import objects
+from .utils.functions import _get_primed_objects, _make_prime, _remove_prime
+from .physics import scalars
 from .utils.multiprocessing import _mp_helper
 
 __all__ = ["Bopp",
@@ -52,8 +52,8 @@ def _star_base(A : sm.Expr, B : sm.Expr) \
     
     """
     
-    any_phase_space_variable_in_A = bool(A.atoms(objects.q, objects.p))
-    any_phase_space_variable_in_B = bool(B.atoms(objects.q, objects.p))
+    any_phase_space_variable_in_A = bool(A.atoms(scalars.q, scalars.p))
+    any_phase_space_variable_in_B = bool(B.atoms(scalars.q, scalars.p))
     if (not(any_phase_space_variable_in_A) or 
         not (any_phase_space_variable_in_B)):
         return A*B
@@ -134,7 +134,8 @@ class Bopp():
     """
     
     def __new__(cls, A : sm.Expr, left : bool = False):
-        I, q, p, W = get_objects()
+        q = scalars.q()
+        p = scalars.p()
         qq, pp, dqq, dpp = _get_primed_objects()
         
         if bool(A.atoms(sm.Derivative)):
@@ -159,8 +160,8 @@ class Bopp():
         sgn = 1
         if left:
             sgn = -1
-        out = A.subs({q : q + sgn * I/2 * dpp,
-                    p : p - sgn * I/2 * dqq})
+        out = A.subs({q : q + sgn * sm.I/2 * dpp,
+                    p : p - sgn * sm.I/2 * dqq})
         return out.expand()
 
 def _replace_diff(A : sm.Expr) \
@@ -189,7 +190,7 @@ def _replace_diff(A : sm.Expr) \
     return A
 
 def _first_index_and_diff_order(A : sm.Expr) \
-    -> None | tuple[int, objects.qq|objects.pp, int|sm.Number]:
+    -> None | tuple[int, scalars._qq|scalars._pp, int|sm.Number]:
     """
     
     Get the index of the first differential operator appearing
