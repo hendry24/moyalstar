@@ -1,5 +1,5 @@
 import sympy as sm
-from . import objects
+from . import scalars
 
 class moyalstarOp(sm.Expr):
     
@@ -8,11 +8,15 @@ class moyalstarOp(sm.Expr):
     
     is_commutative = False
     
-    def __new__(cls):
-        return super().__new__(cls)
+    def __new__(cls, sub = None):
+        return super().__new__(cls, scalars._treat_sub(sub))
+    
+    @property
+    def sub(self):
+        return self.args[0]
     
     def __str__(self):
-        return r"{%s}" % (self.symb)
+        return r"{%s}_{%s}" % (self.symb, self.sub)
     
     def __repr__(self):
         return str(self)
@@ -50,14 +54,14 @@ class Dagger():
     
 class positionOp(moyalstarOp):
     symb = r"\hat{q}"
-    wigner_transform = objects.q()
+    wigner_transform = scalars.q()
     
     def conj(self):
         return self
     
 class momentumOp(moyalstarOp):
     symb = r"\hat{p}"
-    wigner_transform = objects.p()
+    wigner_transform = scalars.p()
     
     def conj(self):
         return self
@@ -65,7 +69,7 @@ class momentumOp(moyalstarOp):
 class annihilateOp(moyalstarOp):
     symb = r"\hat{a}"
     with sm.evaluate(False):
-        wigner_transform = (objects.q()+sm.I * objects.p())/sm.sqrt(2)
+        wigner_transform = (scalars.q()+sm.I * scalars.p())/sm.sqrt(2)
         
     def conj(self):
         return createOp()
@@ -73,14 +77,14 @@ class annihilateOp(moyalstarOp):
 class createOp(moyalstarOp):
     symb = r"\hat{a}^{\dagger}"
     with sm.evaluate(False):
-        wigner_transform = (objects.q()-sm.I * objects.p())/sm.sqrt(2)
+        wigner_transform = (scalars.q()-sm.I * scalars.p())/sm.sqrt(2)
         
     def conj(self):
         return annihilateOp()
         
 class densityOp(moyalstarOp):
     symb = r"\rho"
-    wigner_transform = objects.W()
+    wigner_transform = scalars.W()
     
     def conj(self):
         return self
@@ -100,7 +104,7 @@ class Fock(moyalstarOp):
         obj = super().__new__(cls)
         obj.symb = _get_ket_bra_string(a=n, rho_sub="Fock")
         
-        hh = (objects.q()**2 + objects.p()**2)/2
+        hh = (scalars.q()**2 + scalars.p()**2)/2
         exponent = (-2*hh).expand()
         obj.wigner_transform = (-1)**n/sm.pi * sm.exp(exponent) * sm.laguerre(n, 4*hh)
         return obj
@@ -112,8 +116,8 @@ class Coherent(moyalstarOp):
         
         q0 = sm.re(alpha)
         p0 = sm.im(alpha)
-        q = objects.q()
-        p = objects.p() 
+        q = scalars.q()
+        p = scalars.p() 
         with sm.evaluate(False):
             obj.wigner_transform = 1/sm.pi * sm.exp(-(q-q0)**2 - (p-p0)**2)
         return obj
@@ -123,8 +127,8 @@ class Thermal(moyalstarOp):
         obj = super().__new__(cls)
         obj.symb = r"\rho_\mathrm{thermal}, \quad \tilde{n} = {%s}"%(n_avg)
         
-        q = objects.q()
-        p = objects.p()
+        q = scalars.q()
+        p = scalars.p()
         obj.wigner_transform = 1/(sm.pi * (n_avg + sm.Rational(1,2)))
         obj.wigner_transform *= sm.exp(-((q**2+p**2))/(n_avg + sm.Rational(1,2)))
         return obj

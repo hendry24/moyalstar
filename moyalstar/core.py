@@ -1,7 +1,7 @@
 import sympy as sm
 
-from .utils.functions import _get_primed_objects, _make_prime, _remove_prime
 from .physics import scalars
+from .utils.functions import _get_primed_objects, _make_prime, _remove_prime
 from .utils.multiprocessing import _mp_helper
 
 __all__ = ["Bopp",
