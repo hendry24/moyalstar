@@ -3,9 +3,9 @@ import sympy.physics.quantum as smq
 from functools import cached_property
 
 from .wigner_transform import WignerTransform
-from . import scalars
-from ..utils.functions import collect_by_derivative
-from .hilbert_ops import densityOp, Dagger
+from ..core import scalars
+from ..core.hilbert_ops import densityOp, Dagger
+from ..utils.grouping import collect_by_derivative
 
 __all__ = ["LindbladMasterEquation"]
 
@@ -19,21 +19,6 @@ class _AddOnlyExpr(sm.Expr):
     __rsub__ = __pow__
     __truediv__ = __pow__
     __rtruediv__ = __pow__
-    
-class _TimeDerivativeOfDensityOp(sm.Basic):
-    wigner_transform = sm.Derivative(scalars.W(), scalars.t())
-    
-    def __new__(cls):
-        return super().__new__(cls)
-    
-    def __str__(self):
-        return sm.latex(sm.Derivative(densityOp(), scalars.t()))
-    
-    def __repr__(self):
-        return str(self)
-    
-    def _latex(self, printer):
-        return str(self)
     
 class _LindbladDissipator(_AddOnlyExpr):
     def __new__(cls, rate = 1, operator_1 = 1, operator_2 = None):
@@ -119,7 +104,7 @@ class LindbladMasterEquation(sm.Basic):
     
     @property
     def lhs(self):
-        return _TimeDerivativeOfDensityOp()
+        return sm.Derivative(densityOp(), scalars.t())
 
     @property
     def rhs(self):
@@ -130,7 +115,7 @@ class LindbladMasterEquation(sm.Basic):
     
     @cached_property
     def wigner_transform(self):
-        lhs = self.lhs.wigner_transform
+        lhs = sm.Derivative(scalars.W(), scalars.t())
         rhs = WignerTransform(self.rhs.doit().expand())
         if self.collect_by_derivative:
             rhs = collect_by_derivative(rhs, lhs.args[0])

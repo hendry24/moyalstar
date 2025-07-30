@@ -1,15 +1,14 @@
 import sympy as sm
 
-from .physics import scalars
-from .utils.functions import _get_primed_objects, _make_prime, _remove_prime
-from .utils.multiprocessing import _mp_helper
+from . import scalars
+from ..utils.multiprocessing import _mp_helper
 
 __all__ = ["Bopp",
            "Star"]
 
 class Star():
     def __new__(cls, *args):
-        if len(args) == 0:
+        if not(args):
             return sm.Integer(1)
         
         out = sm.sympify(args[0])
@@ -52,25 +51,25 @@ def _star_base(A : sm.Expr, B : sm.Expr) \
     
     """
     
-    any_phase_space_variable_in_A = bool(A.atoms(scalars.q, scalars.p))
-    any_phase_space_variable_in_B = bool(B.atoms(scalars.q, scalars.p))
+    any_phase_space_variable_in_A = A.has(scalars.q, scalars.p)
+    any_phase_space_variable_in_B = B.has(scalars.q, scalars.p)
     if (not(any_phase_space_variable_in_A) or 
         not (any_phase_space_variable_in_B)):
         return A*B
 
-    is_function_inside_A = bool(A.atoms(sm.Function))
-    is_function_inside_B = bool(B.atoms(sm.Function))
+    is_function_inside_A = A.has(sm.Function)
+    is_function_inside_B = B.has(sm.Function)
     if is_function_inside_A and is_function_inside_B:
         msg = "One of A and B must be sympy.Function-free to be correctly Bopp shifted."
         raise ValueError(msg)
     
     if is_function_inside_A:
-        A = _make_prime(A)
+        A = scalars._Primed(A)
         B = Bopp(B, left=True)
         X = (B * A).expand()
     else:
         A = Bopp(A, left=False)
-        B = _make_prime(B)
+        B = scalars._Primed(B)
         X = (A * B).expand()
 
     # Expanding is necessary to ensure that all arguments of q contain no Add objects.
@@ -91,10 +90,8 @@ def _star_base(A : sm.Expr, B : sm.Expr) \
         X_args = [X]
     
     out = sm.Add(*_mp_helper(X_args, _replace_diff))
-
-    out = _remove_prime(out)
                 
-    return out.doit().expand()
+    return scalars._DePrimed(out).doit().expand()
 
 class Bopp():
     """
@@ -134,13 +131,10 @@ class Bopp():
     """
     
     def __new__(cls, A : sm.Expr, left : bool = False):
-        q = scalars.q()
-        p = scalars.p()
-        qq, pp, dqq, dpp = _get_primed_objects()
         
-        if bool(A.atoms(sm.Derivative)):
+        if A.has(sm.Derivative):
             A = A.doit()
-            if bool(A.atoms(sm.Derivative)):
+            if A.has(sm.Derivative):
                 s = "'A' contains persistent derivative(s), most possibly working on an UndefinedFunction."
                 s += "The function has tried to call 'A.doit()' but couldn't get rid of the 'Derivative"
                 s += "objecs. This leads to faulty Bopp-shifting which results in incorrect ★-products evaluation."
@@ -156,13 +150,73 @@ class Bopp():
         The evaluation-prohibition is not applied in the current version, but the above code
         is nevertheless useful to catch errors, so we keep it there.
         """
+        
+        def dxx(X):
+            return scalars._DerivativeSymbol(scalars._Primed(X))
 
         sgn = 1
         if left:
             sgn = -1
-        out = A.subs({q : q + sgn * sm.I/2 * dpp,
-                    p : p - sgn * sm.I/2 * dqq})
-        return out.expand()
+        
+        subs_dict = {}
+        for X in list(A.atoms()):
+            if isinstance(X, scalars.q):
+                subs_dict[X] = X + sgn * sm.I/2 * dxx(scalars.p(X.sub))
+            if isinstance(X, scalars.p):
+                subs_dict[X] = X - sgn * sm.I/2 *  dxx(scalars.q(X.sub))
+        
+        return A.subs(subs_dict).expand()
+
+def _first_index_and_diff_order(A : sm.Expr) \
+    -> None | tuple[int, scalars.q|scalars.p, int|sm.Number]:
+    """
+    
+    Get the index of the first differential operator appearing
+    in the Bopp-shifted expression (dqq or dpp), either qq or pp, and 
+    the differential order (the power of dqq or dpp).
+    
+    Parameters
+    ----------
+    
+    A : sympy.Expr
+        A summand in the expanded Bopp-shifted expression to be
+        evaluated. `A.args` thus give its factors.
+        
+    Returns
+    -------
+    
+    idx : int
+        The index of `A.args` where the first `_DerivativeSymbol` object is contained.
+        
+    diff_var : `q` or `p`
+        The true differentiation variable. Either `q` or `p`, accessed by taking the 
+        `.diff_var` attribute of the `_DerivativeSymbol`, returning the `_Primed` 
+        object, then taking its `.base` attribute.
+        
+    diff_order : int or sm.Number
+        The order of the differentiation contained in the `idx`-th argument of 
+        `A`, i.e., the exponent of `_DerivativeSymbol` encountered.
+    """
+
+    """
+    Everything to the right of the first "derivative operator" symbol
+    must be ordered in .args since we have specified the noncommutativity
+    of the primed symbols. It does not matter if the unprimed symbols get
+    stuck in the middle since the operator does not work on them. What is 
+    important is that x' and p' are correctly placed with respect to the
+    derivative operators.
+    """
+    for idx, A_ in enumerate(A.args): 
+        
+        if isinstance(A_, scalars._DerivativeSymbol):
+            return idx, A_.diff_var.base, 1
+
+        if A_.has(scalars._DerivativeSymbol):
+            # We have dxx**n for n>1. For a Pow object, the second argument gives
+            # the exponent; in this case, the differentiation order.
+            return idx, A_.args[0].diff_var.base, A_.args[1]
+        
+    return None # This stops the recursion. See _replace_diff.
 
 def _replace_diff(A : sm.Expr) \
     -> sm.Expr:
@@ -188,58 +242,3 @@ def _replace_diff(A : sm.Expr) \
         """
     
     return A
-
-def _first_index_and_diff_order(A : sm.Expr) \
-    -> None | tuple[int, scalars._qq|scalars._pp, int|sm.Number]:
-    """
-    
-    Get the index of the first differential operator appearing
-    in the Bopp-shifted expression (dqq or dpp), either qq or pp, and 
-    the differential order (the power of dqq or dpp).
-    
-    Parameters
-    ----------
-    
-    A : sympy.Expr
-        A summand in the expanded Bopp-shifted expression to be
-        evaluated. `A.args` thus give its factors.
-        
-    Returns
-    -------
-    
-    idx : int
-        The index in `A.args` where the first `dqq` or `dpp` object is contained.
-        
-    diff_var : `qq` or `pp`
-        The differentiation variable. Either `qq` or `pp`.
-        
-    diff_order : int or sm.Number
-        The order of the differentiation contained in the `idx`-th argument of 
-        `A`, i.e., the exponent of `dqq` or `dpp` encountered.
-    """
-
-    qq, pp, dqq, dpp = _get_primed_objects()
-
-    """
-    Everything to the right of the first "derivative operator" symbol
-    must be ordered in .args since we have specified the noncommutativity
-    of the primed symbols. It does not matter if the unprimed symbols get
-    stuck in the middle since the operator does not work on them. What is 
-    important is that x' and p' are correctly placed with respect to the
-    derivative operators.
-    """
-    for idx, A_ in enumerate(A.args): 
-        
-        if A_ == dqq:
-            return idx, qq, 1
-        if dqq in A_.args:
-            # We have dqq**n for n>1. For a Pow object, the second argument gives
-            # the exponent; in this case, the differentiation order.
-            return idx, qq, A_.args[1]
-        
-        if A_ == dpp:
-            return idx, pp, 1
-        if dpp in A_.args:
-            return idx, pp, A_.args[1]
-        
-    return None # This stops the recursion. See _replace_diff.

@@ -77,5 +77,5 @@ def _pool_helper(_A_bytes : bytes, foo : callable):
     `_replace_diff` to work with. Then, the output is pickled once 
     again when sent back to the main process. 
     """
-    _A = dill.loads(_A_bytes)
-    return dill.dumps(foo(_A))
+    
+    return dill.dumps(foo(dill.loads(_A_bytes)))
