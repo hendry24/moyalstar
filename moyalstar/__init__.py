@@ -1,6 +1,8 @@
-from .core.scalars import q, p, W, alpha, alphaD
-from .core.hilbert_ops import (positionOp, momentumOp, createOp, annihilateOp, 
-                               densityOp, Dagger)
+from .core.scalars import q, p, alpha, alphaD, W
+from .core.hilbert_ops import (positionOp, momentumOp, 
+                               createOp, annihilateOp, 
+                               rho, Dagger)
+
 from .core.star_product import Bopp, Star
 
 from .physics.wigner_transform import WignerTransform

@@ -4,6 +4,19 @@ class moyalstarBase(sm.Symbol):
     """
     Base object for the package, essentially a modified sympy.Symbol supporting accessible
     arguments. A Symbol is used instead of Expr to ensure that the variables are more well-behaved.
+    
+    """
+    
+    """
+    NOTE:
+    Since this package uses pickling for its multiprocessing support, all subclasses of this class
+    must have the same call signature for __new__. 
+    
+    If we want to force a subclass of moyalstarBase to have no argument, a useful workaround would be to write 
+    a separate class not subclassing moyalstarBase, whose '__new__' has no argument, then make it return the 
+    intended object that is a subclass of moyalstarBase. 
+    
+    See 'hilbert_ops.densityOp' and 'hilbert_ops.rho', for example. 
     """
     
     def _get_symbol_name_and_assumptions(cls, arg):

@@ -95,8 +95,9 @@ class densityOp(HermitianOp):
     base = r"\rho"
     has_sub = False
     
-    def __new__(cls):
-        return super().__new__(cls, None)
-
     def wigner_transform(self):
         return scalars.W()
+    
+class rho():
+    def __new__(cls):
+        return densityOp(sub=None)

@@ -36,9 +36,6 @@ class t(moyalstarScalar):
     base = r"t"
     has_sub = False
     
-    def __new__(cls):
-        return super().__new__(cls, None)
-
 class q(moyalstarScalar):
     base = r"q"
     
