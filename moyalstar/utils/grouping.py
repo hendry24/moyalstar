@@ -14,7 +14,7 @@ def derivative_not_in_num(A : sm.Expr):
     A = sm.sympify(A)
     
     if isinstance(A, sm.Add):
-        return sm.Add(*_mp_helper(A.args, qp_not_in_num))
+        return sm.Add(*_mp_helper(A.args, derivative_not_in_num))
     
     der_lst = list(A.find(sm.Derivative))
     if not(der_lst):
