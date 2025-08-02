@@ -5,7 +5,7 @@ from functools import cached_property
 from .wigner_transform import WignerTransform
 from ..core import scalars
 from ..core.hilbert_ops import densityOp, Dagger
-from ..utils.grouping import collect_by_derivative
+from ..utils.grouping import collect_by_derivative, derivative_not_in_num
 
 __all__ = ["LindbladMasterEquation"]
 
@@ -72,7 +72,7 @@ class _LindbladDissipator(_AddOnlyExpr):
         return out
     
 class LindbladMasterEquation(sm.Basic):
-    collect_by_derivative = True
+    neat_display = True
     
     def __new__(cls, 
                 H : sm.Expr,
@@ -117,8 +117,9 @@ class LindbladMasterEquation(sm.Basic):
     def wigner_transform(self):
         lhs = sm.Derivative(scalars.W(), scalars.t())
         rhs = WignerTransform(self.rhs.doit().expand())
-        if self.collect_by_derivative:
-            rhs = collect_by_derivative(rhs, lhs.args[0])
+        if self.neat_display:
+            rhs = derivative_not_in_num(collect_by_derivative(rhs, lhs.args[0]))
+            # Collect first to reduce the number of terms. 
         return sm.Equality(lhs, rhs)
     
     def __str__(self):

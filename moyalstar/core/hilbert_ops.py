@@ -1,4 +1,6 @@
 import sympy as sm
+import typing
+
 from . import scalars
 from .base import moyalstarBase
 from ..utils.multiprocessing import _mp_helper
@@ -51,21 +53,21 @@ class Dagger():
         
         return A.dagger()
     
-class positionOp(moyalstarOp):
-    base = r"\hat{q}"
+class HermitianOp(moyalstarOp):
     
+    @typing.final
     def dagger(self):
         return self
     
+class positionOp(HermitianOp):
+    base = r"\hat{q}"
+
     def wigner_transform(self):
         return scalars.q(sub = self.sub)
     
-class momentumOp(moyalstarOp):
+class momentumOp(HermitianOp):
     base = r"\hat{p}"
-    
-    def dagger(self):
-        return self
-    
+        
     def wigner_transform(self):
         return scalars.p(sub = self.sub)
     
@@ -89,15 +91,12 @@ class createOp(moyalstarOp):
         with sm.evaluate(False):
             return scalars.alphaD(sub = self.sub)
         
-class densityOp(moyalstarOp):     
+class densityOp(HermitianOp):
     base = r"\rho"
     has_sub = False
     
     def __new__(cls):
         return super().__new__(cls, None)
-    
-    def dagger(self):
-        return self
 
     def wigner_transform(self):
         return scalars.W()

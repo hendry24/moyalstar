@@ -57,13 +57,35 @@ def _star_base(A : sm.Expr, B : sm.Expr) \
         not (any_phase_space_variable_in_B)):
         return A*B
 
-    is_function_inside_A = A.has(sm.Function)
-    is_function_inside_B = B.has(sm.Function)
-    if is_function_inside_A and is_function_inside_B:
-        msg = "One of A and B must be sympy.Function-free to be correctly Bopp shifted."
+    def cannot_Bopp_pow(X):
+        """
+        Pow is not Function, so it needs a special treatment. Here we prevent
+        Bopp shift if the expression contains Pow objects that:
+            - Has q or p in the exponents.
+            - Is a non-positive-integer power of q or p. 
+        """
+        pow_in_X = X.find(sm.Pow)
+        pow_in_X_with_qp = [x for x in pow_in_X if x.has(scalars.q, scalars.p)]
+        for x in pow_in_X_with_qp:
+            exp = x.args[1]
+            if not(isinstance(exp, sm.Integer) and exp >= 0):
+                return True
+        return False
+
+    cannot_Bopp_A, cannot_Bopp_B = \
+        [any([x.atoms(scalars.q, scalars.p) for x in X.find(sm.Function)])
+         or cannot_Bopp_pow(X) for X in [A,B]]
+
+    if cannot_Bopp_A and cannot_Bopp_B:
+        msg = "Both inputs cannot be properly Bopp shifted to work with the package. "
+        msg += "Expressions that contain: "
+        msg += "(1) 'Function's in q or p, or "
+        msg += "(2) 'Pow's that have q or p in the exponents, or "
+        msg += "(3) 'Pow's that are q or p raised to some non-positive-integer exponent, "
+        msg += "are problematic when Bopp-shifted."
         raise ValueError(msg)
     
-    if is_function_inside_A:
+    if cannot_Bopp_A:
         A = scalars._Primed(A)
         B = Bopp(B, left=True)
         X = (B * A).expand()
@@ -72,7 +94,7 @@ def _star_base(A : sm.Expr, B : sm.Expr) \
         B = scalars._Primed(B)
         X = (A * B).expand()
 
-    # Expanding is necessary to ensure that all arguments of q contain no Add objects.
+    # Expanding is necessary to ensure that all arguments of X contain no Add objects.
     
     """
     The ★-product evaluation routine called after Bopp shifting, whence
@@ -216,7 +238,7 @@ def _first_index_and_diff_order(A : sm.Expr) \
             # the exponent; in this case, the differentiation order.
             return idx, A_.args[0].diff_var.base, A_.args[1]
         
-    return None # This stops the recursion. See _replace_diff.
+    return None # This stops the recursion. See _replace_diff.        
 
 def _replace_diff(A : sm.Expr) \
     -> sm.Expr:

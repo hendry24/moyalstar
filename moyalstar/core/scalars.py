@@ -48,12 +48,12 @@ class p(moyalstarScalar):
 class alpha():
     def __new__(cls, sub = None):
         with sm.evaluate(False):
-            return (q(sub) + sm.I * p(sub)) / sm.sqrt(2)
+            return (1 / sm.sqrt(2)) * (q(sub) + sm.I * p(sub))
         
 class alphaD():
     def __new__(cls, sub = None):
         with sm.evaluate(False):
-            return (q(sub) - sm.I * p(sub)) / sm.sqrt(2)
+            return (1 / sm.sqrt(2)) * (q(sub) - sm.I * p(sub))
 
 ###
 
