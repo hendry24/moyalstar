@@ -7,35 +7,18 @@ __all__ = ["Bopp",
            "Star"]
 
 class Star():
-    def __new__(cls, *args):
-        if not(args):
-            return sm.Integer(1)
-        
-        out = sm.sympify(args[0])
-        for arg in args[1:]:
-            out = _star_base(out, sm.sympify(arg))
-        return out
-    
-def _star_base(A : sm.Expr, B : sm.Expr) \
-    -> sm.Expr:
     """
-    The Moyal star-product A(q,p) ★ B(q,p), calculated using the Bopp shift.
+    The Moyal star-product A(q,p) ★ B(q,p) ★ ..., calculated using the Bopp shift.
 
     Parameters
     ----------
 
-    A : sympy.Expr
-        Left-hand-side operand. Only one of this and `B` may contain a `sympy.Function`; else an exception
-        is raised.
-
-    B : sympy.Expr
-        Right-hand-side operand, similar to `A`.
-
-    Returns
-    -------
-
-    out : sympy.Expr
-        The Moyal star-product between `A` and `B`.
+    *args
+        The factors of the star-product, ordered from first to last. Since the algorithm
+        utilizes the Bopp shift, only one operand may be "un-Bopp-shift-able", i.e. which contains:
+        (1) `sympy.Function`'s in `q` or `p`, or
+        (2) `sympy.Pow`'s that have `q` or `p` in the exponents, or
+        (3) `sympy.Pow`'s that are `q` or `p` raised to some non-positive-integer exponent.
 
     References
     ----------
@@ -50,7 +33,18 @@ def _star_base(A : sm.Expr, B : sm.Expr) \
     moyalstar.bopp : Bopp shift the input expression. 
     
     """
+
+    def __new__(cls, *args):
+        if not(args):
+            return sm.Integer(1)
+        
+        out = sm.sympify(args[0])
+        for arg in args[1:]:
+            out = _star_base(out, sm.sympify(arg))
+        return out
     
+def _star_base(A : sm.Expr, B : sm.Expr) \
+    -> sm.Expr:    
     any_phase_space_variable_in_A = A.has(scalars.q, scalars.p)
     any_phase_space_variable_in_B = B.has(scalars.q, scalars.p)
     if (not(any_phase_space_variable_in_A) or 

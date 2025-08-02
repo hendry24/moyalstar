@@ -5,8 +5,17 @@ from ..core.star_product import Star
 from ..utils.multiprocessing import _mp_helper
 
 class WignerTransform():
+    """
+    The Wigner transform.
+    
+    Parameters
+    ----------
+    
+    A : sm.Expr
+    
+    """
 
-    def __new__(cls, A : sm.Expr | moyalstarOp):
+    def __new__(cls, A : sm.Expr):
 
         A = sm.sympify(A)
         

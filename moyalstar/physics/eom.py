@@ -72,6 +72,13 @@ class _LindbladDissipator(_AddOnlyExpr):
         return out
     
 class LindbladMasterEquation(sm.Basic):
+    """
+    The Lindblad master equation. 
+    
+    Parameters
+    ----------
+    
+    """
     neat_display = True
     
     def __new__(cls, 
@@ -117,6 +124,7 @@ class LindbladMasterEquation(sm.Basic):
     def wigner_transform(self):
         lhs = sm.Derivative(scalars.W(), scalars.t())
         rhs = WignerTransform(self.rhs.doit().expand())
+                                            # By calling expand, we effectively call .expand of _LindbladDissipator
         if self.neat_display:
             rhs = derivative_not_in_num(collect_by_derivative(rhs, lhs.args[0]))
             # Collect first to reduce the number of terms. 

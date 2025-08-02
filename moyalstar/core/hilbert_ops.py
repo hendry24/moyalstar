@@ -18,7 +18,7 @@ class moyalstarOp(moyalstarBase):
     
     @property
     def sub(self):
-        return self._arg
+        return self._custom_args[0]
     
     def dagger(self):
         raise NotImplementedError()
@@ -95,9 +95,12 @@ class densityOp(HermitianOp):
     base = r"\rho"
     has_sub = False
     
+    def __new__(cls, sub=None):
+        return super().__new__(cls, sub)
+    
     def wigner_transform(self):
         return scalars.W()
     
 class rho():
     def __new__(cls):
-        return densityOp(sub=None)
+        return densityOp()

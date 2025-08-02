@@ -2,49 +2,33 @@ import sympy as sm
 
 class moyalstarBase(sm.Symbol):
     """
-    Base object for the package, essentially a modified sympy.Symbol supporting accessible
-    arguments. A Symbol is used instead of Expr to ensure that the variables are more well-behaved.
-    
+    Base object for the package, essentially a modified sympy.Symbol supporting extra accessible
+    arguments. 
     """
     
-    """
-    NOTE:
-    Since this package uses pickling for its multiprocessing support, all subclasses of this class
-    must have the same call signature for __new__. 
-    
-    If we want to force a subclass of moyalstarBase to have no argument, a useful workaround would be to write 
-    a separate class not subclassing moyalstarBase, whose '__new__' has no argument, then make it return the 
-    intended object that is a subclass of moyalstarBase. 
-    
-    See 'hilbert_ops.densityOp' and 'hilbert_ops.rho', for example. 
-    """
-    
-    def _get_symbol_name_and_assumptions(cls, arg):
+    def _get_symbol_name_and_assumptions(cls, *custom_args):
         raise NotImplementedError()
     
-    def __new__(cls, arg, **assumptions):
-        # The `assumptions` kwargs is necessary or the code will break.
-        # Presumably, SymPy wants to plug in the base `assumption0` 
-        # before adapting to the user-specified input. This applies to
-        # all subclass of moyalstarBase.
+    def __new__(cls, *custom_args):
         
-        # Here we override the assumptions fed into sympy.Symbol to force
-        # the assumptions that we want.
-        name, assumptions = cls._get_symbol_name_and_assumptions(cls, arg)
+        name, assumptions = cls._get_symbol_name_and_assumptions(cls, *custom_args)
         
         obj = super().__new__(cls,
                               name = name,
                               **assumptions)
-        obj._arg = arg
+        obj._custom_args = custom_args 
         """
-        By writing it this way, we can store arg as an attribute. We can
-        also set what arg is called in the subclass, by defining a property
-        then returning arg there.
+        '_args' is used by SymPy and should not be overriden, or the method
+        .atoms which is crucial in this package will not work correctly.
+            
+        This allows us to store custom_args as accessible attributes. We can
+        also set what each custom argument is called in a given subclass, 
+        by defining a property then returning the argument.
         """        
         return obj
 
     def __reduce__(self):
-        # Tells pickling package like dill to call self.__class__(self._arg, **self.assumptions0).
-        # Dunno if omitting self.assumptions0 will break the code; better be safe here.
-        # The comma in (self._arg,) is necessary for SymPy to recognize it as a tuple.
-        return (self.__class__, (self._arg,), self.assumptions0)
+        # This specifies how pickling is done for the object and its subclasses.
+        # .assumptions0 is needed by sympy.Symbol
+        # See https://docs.python.org/3/library/pickle.html
+        return self.__class__, self._custom_args, self.assumptions0
