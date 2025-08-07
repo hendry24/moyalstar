@@ -57,9 +57,6 @@ class p(moyalstarScalar):
     sub : objects castable to sympy.Symbol
         Subscript signifying subsystem.
     """
-        
-
-    
     base = r"p"
     
 class alpha():

@@ -125,9 +125,10 @@ class LindbladMasterEquation(sm.Basic):
         lhs = sm.Derivative(scalars.W(), scalars.t())
         rhs = WignerTransform(self.rhs.doit().expand())
                                             # By calling expand, we effectively call .expand of _LindbladDissipator
-        if self.neat_display:
-            rhs = derivative_not_in_num(collect_by_derivative(rhs, lhs.args[0]))
+
             # Collect first to reduce the number of terms. 
+        if self.neat_display:
+            return sm.Equality(lhs, derivative_not_in_num(collect_by_derivative(rhs, lhs.args[0])))
         return sm.Equality(lhs, rhs)
     
     def __str__(self):
