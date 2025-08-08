@@ -11,6 +11,7 @@ from moyalstar.core.star_product import (Bopp, Star, _star_base,
                                          _first_index_and_diff_order, _replace_diff)
 
 from moyalstar.utils.cache import _qp_cache
+from moyalstar.utils.multiprocessing import _mp_helper, MP_CONFIG
 
 def get_random_poly(objects, coeffs=[1], max_pow=3, dice_throw=10):
     """
@@ -111,8 +112,26 @@ class TestHilbertOps():
                             alphaD(), alpha(), 
                             W()]):
             assert (op.wigner_transform() - wig).expand() == 0
-            
+
+def mp_helper_foo(x):
+        return x+2
 @pytest.mark.order(2)
+def test_mp_helper():
+    inpt = [1, sm.Symbol("x"), moyalstarScalar(),
+            moyalstarOp(), W()]
+    
+    global MP_CONFIG
+    enable_default = MP_CONFIG["enable"]
+    MP_CONFIG["min_num_args"] = 0
+
+    for enable in [True, False]:
+        MP_CONFIG["enable"] = enable
+        assert (_mp_helper(inpt, mp_helper_foo) 
+                == list(map(mp_helper_foo, inpt)))
+    
+    MP_CONFIG["enable"] = enable_default
+
+@pytest.mark.order(3)
 class TestStarProduct():
     
     rand_N = random.randint(0, 100)
@@ -202,8 +221,8 @@ class TestStarProduct():
                              [self.q**0.2, self.p**1.0000]]:
             must_raise_error(bad_A, bad_B)
         
-        q1, p1 = q(self.rand_N+1), p(self.rand_N+1)
         q0, p0, a0, ad0 = self.q, self.p, self.a, self.ad
+        q1, p1, a1, ad1 = q(self.rand_N+1), p(self.rand_N+1), alpha(self.rand_N+1), alphaD(self.rand_N+1)
         for A, B, out in [[q0, q0, q0**2],
                           [p0, p0, p0**2],
                           [q0, p0, p0*q0 + sm.I*hbar/2],
@@ -211,7 +230,9 @@ class TestStarProduct():
                           [a0, ad0, (q0**2+p0**2+hbar)/(2*hbar)],
                           [ad0, a0, (q0**2+p0**2-hbar)/(2*hbar)],
                           [q0, p1, q0*p1],
-                          [p0, q1, p0*q1]]:
+                          [p0, q1, p0*q1],
+                          [a0, ad1, a0*ad1],
+                          [ad0, a1, ad0*a1]]:
             
             assert (_star_base(A, B) - out).expand() == 0
         
