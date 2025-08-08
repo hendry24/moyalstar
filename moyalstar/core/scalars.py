@@ -5,6 +5,9 @@ from ..utils.cache import _qp_cache
 
 __all__ = ["q", "p", "alpha", "alphaD", "W"]
 
+global hbar
+hbar = sm.Symbol(r"\hbar", real=True)
+
 def _treat_sub(sub, has_sub):
     if ((sub is None) or not(has_sub)):
         return sm.Symbol(r"")
@@ -62,12 +65,12 @@ class p(moyalstarScalar):
 class alpha():
     def __new__(cls, sub = None):
         with sm.evaluate(False):
-            return (1 / sm.sqrt(2)) * (q(sub) + sm.I * p(sub))
+            return (1 / sm.sqrt(2*hbar)) * (q(sub) + sm.I * p(sub))
         
 class alphaD():
     def __new__(cls, sub = None):
         with sm.evaluate(False):
-            return (1 / sm.sqrt(2)) * (q(sub) - sm.I * p(sub))
+            return (1 / sm.sqrt(2*hbar)) * (q(sub) - sm.I * p(sub))
 
 ###
 

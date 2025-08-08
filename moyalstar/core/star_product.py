@@ -6,6 +6,80 @@ from ..utils.multiprocessing import _mp_helper
 __all__ = ["Bopp",
            "Star"]
 
+class Bopp():
+    """
+    Bopp shift the input quantity for the calculation of the Moyal star-product. 
+
+    `A(q,p)★B(q,p) = A(q + (i/2)*dpp, p - (i/2)*dqq) * B(qq, pp)`
+
+    `A(x,p)★B(x,p) = B(q - (i/2)*dpp, p + (i/2)*dqq) * A(qq, pp)`
+    
+    In the current version, this operation attempts to remove all `sympy.Derivative`
+    in the input expression to ensure a correct Bopp shift. This is why `Star` only
+    accepts one 'UndefinedFunction' at maximum, as the algorithm can just Bopp-shift
+    the other derivative-free expression. 
+            
+    Parameters
+    ----------
+
+    A : sympy.Expr
+        Quantity to be Bopp-shifted, should contain `objects.q` or `objects.p`.
+
+    left : bool, default: False
+        Whether the star-product operator is to the left of `A`. 
+
+    Returns
+    -------
+
+    out : sympy object
+        Bopp-shifted sympy object. 
+
+    References
+    ----------
+    
+        T. Curtright, D. Fairlie, and C. Zachos, A Concise Treatise On Quantum Mechanics In Phase Space (World Scientific Publishing Company, 2013)    
+
+        https://physics.stackexchange.com/questions/578522/why-does-the-star-product-satisfy-the-bopp-shift-relations-fx-p-star-gx-p
+
+    """
+        
+    def __new__(cls, A : sm.Expr, left : bool = False):
+        
+        if A.has(sm.Derivative):
+            A = A.doit()
+            if A.has(sm.Derivative):
+                s = "'A' contains persistent derivative(s), most possibly working on an UndefinedFunction."
+                s += "The function has tried to call 'A.doit()' but couldn't get rid of the 'Derivative"
+                s += "objecs. This leads to faulty Bopp-shifting which results in incorrect ★-products evaluation."
+                raise ValueError(s)
+            
+        """
+        The derivative evaluation attempt in `Bopp` will deal with intermediate
+        unevaluated derivative(s) during the ★-product chain in `Star`. Since
+        `Bopp` is not called on the operand containing an UndefinedFunction, this
+        effectively keeps the derivative(s) operating on expressions containing
+        the UndefinedFunction from being evaluated, resulting in a "prettier" output.
+        
+        The evaluation-prohibition is not applied in the current version, but the above code
+        is nevertheless useful to catch errors, so we keep it there.
+        """
+        
+        def dxx(X):
+            return scalars._DerivativeSymbol(scalars._Primed(X))
+
+        sgn = 1
+        if left:
+            sgn = -1
+        
+        subs_dict = {}
+        for X in list(A.atoms()):
+            if isinstance(X, scalars.q):
+                subs_dict[X] = X + sgn * sm.I*scalars.hbar/2 * dxx(scalars.p(X.sub))
+            if isinstance(X, scalars.p):
+                subs_dict[X] = X - sgn * sm.I*scalars.hbar/2 *  dxx(scalars.q(X.sub))
+        
+        return A.subs(subs_dict).expand()
+    
 class Star():
     """
     The Moyal star-product A(q,p) ★ B(q,p) ★ ..., calculated using the Bopp shift.
@@ -48,7 +122,7 @@ def _star_base(A : sm.Expr, B : sm.Expr) \
     any_phase_space_variable_in_A = A.has(scalars.q, scalars.p)
     any_phase_space_variable_in_B = B.has(scalars.q, scalars.p)
     if (not(any_phase_space_variable_in_A) or 
-        not (any_phase_space_variable_in_B)):
+        not(any_phase_space_variable_in_B)):
         return A*B
 
     def cannot_Bopp_pow(X):
@@ -109,80 +183,6 @@ def _star_base(A : sm.Expr, B : sm.Expr) \
                 
     return scalars._DePrimed(out).doit().expand()
 
-class Bopp():
-    """
-    Bopp shift the input quantity for the calculation of the Moyal star-product. 
-
-    `A(q,p)★B(q,p) = A(q + (i/2)*dpp, p - (i/2)*dqq) * B(qq, pp)`
-
-    `A(x,p)★B(x,p) = B(q - (i/2)*dpp, p + (i/2)*dqq) * A(qq, pp)`
-    
-    In the current version, this operation attempts to remove all `sympy.Derivative`
-    in the input expression to ensure a correct Bopp shift. This is why `Star` only
-    accepts one 'UndefinedFunction' at maximum, as the algorithm can just Bopp-shift
-    the other derivative-free expression. 
-            
-    Parameters
-    ----------
-
-    A : sympy.Expr
-        Quantity to be Bopp-shifted, should contain `objects.q` or `objects.p`.
-
-    left : bool, default: False
-        Whether the star-product operator is to the left of `A`. 
-
-    Returns
-    -------
-
-    out : sympy object
-        Bopp-shifted sympy object. 
-
-    References
-    ----------
-    
-        T. Curtright, D. Fairlie, and C. Zachos, A Concise Treatise On Quantum Mechanics In Phase Space (World Scientific Publishing Company, 2013)    
-
-        https://physics.stackexchange.com/questions/578522/why-does-the-star-product-satisfy-the-bopp-shift-relations-fx-p-star-gx-p
-
-    """
-    
-    def __new__(cls, A : sm.Expr, left : bool = False):
-        
-        if A.has(sm.Derivative):
-            A = A.doit()
-            if A.has(sm.Derivative):
-                s = "'A' contains persistent derivative(s), most possibly working on an UndefinedFunction."
-                s += "The function has tried to call 'A.doit()' but couldn't get rid of the 'Derivative"
-                s += "objecs. This leads to faulty Bopp-shifting which results in incorrect ★-products evaluation."
-                raise ValueError(s)
-            
-        """
-        The derivative evaluation attempt in `Bopp` will deal with intermediate
-        unevaluated derivative(s) during the ★-product chain in `Star`. Since
-        `Bopp` is not called on the operand containing an UndefinedFunction, this
-        effectively keeps the derivative(s) operating on expressions containing
-        the UndefinedFunction from being evaluated, resulting in a "prettier" output.
-        
-        The evaluation-prohibition is not applied in the current version, but the above code
-        is nevertheless useful to catch errors, so we keep it there.
-        """
-        
-        def dxx(X):
-            return scalars._DerivativeSymbol(scalars._Primed(X))
-
-        sgn = 1
-        if left:
-            sgn = -1
-        
-        subs_dict = {}
-        for X in list(A.atoms()):
-            if isinstance(X, scalars.q):
-                subs_dict[X] = X + sgn * sm.I/2 * dxx(scalars.p(X.sub))
-            if isinstance(X, scalars.p):
-                subs_dict[X] = X - sgn * sm.I/2 *  dxx(scalars.q(X.sub))
-        
-        return A.subs(subs_dict).expand()
-
 def _first_index_and_diff_order(A : sm.Expr) \
     -> None | tuple[int, scalars.q|scalars.p, int|sm.Number]:
     """
@@ -204,10 +204,11 @@ def _first_index_and_diff_order(A : sm.Expr) \
     idx : int
         The index of `A.args` where the first `_DerivativeSymbol` object is contained.
         
-    diff_var : `q` or `p`
-        The true differentiation variable. Either `q` or `p`, accessed by taking the 
+    diff_var : `qq` or `pp`
+        The primed differentiation variable. Either `qq` or `pp`, accessed by taking the 
         `.diff_var` attribute of the `_DerivativeSymbol`, returning the `_Primed` 
-        object, then taking its `.base` attribute.
+        object. It stays _Primed here since the other factors in the Expr that
+        the derivative is supposed to work on is the ones containing _Primed.
         
     diff_order : int or sm.Number
         The order of the differentiation contained in the `idx`-th argument of 
@@ -222,23 +223,43 @@ def _first_index_and_diff_order(A : sm.Expr) \
     important is that x' and p' are correctly placed with respect to the
     derivative operators.
     """
-    for idx, A_ in enumerate(A.args): 
-        
-        if isinstance(A_, scalars._DerivativeSymbol):
-            return idx, A_.diff_var.base, 1
+    A = A.expand()
+    if isinstance(A, sm.Add):
+        raise TypeError("Input must not be 'Add'.")
+    
+    if not(A.has(scalars._DerivativeSymbol)):
+        return None # This stops the recursion. See _replace_diff.
+    
+    if isinstance(A, scalars._DerivativeSymbol):
+        return 0, A.diff_var, 1
 
-        if A_.has(scalars._DerivativeSymbol):
-            # We have dxx**n for n>1. For a Pow object, the second argument gives
-            # the exponent; in this case, the differentiation order.
-            return idx, A_.args[0].diff_var.base, A_.args[1]
-        
-    return None # This stops the recursion. See _replace_diff.        
+    if isinstance(A, sm.Pow):
+        # We have dxx**n for n>1. For a Pow object, the second argument gives
+        # the exponent; in this case, the differentiation order.
+        return 0, A.args[0].diff_var, A.args[1]
+    
+    if isinstance(A, sm.Mul):
+        for idx, A_ in enumerate(A.args): 
+            if isinstance(A_, scalars._DerivativeSymbol):
+                return idx, A_.diff_var, 1
+            if A_.has(scalars._DerivativeSymbol):
+                return idx, A_.args[0].diff_var, A_.args[1]
+                
+    raise TypeError(r"Invalid input: \n\n {%s}" % sm.latex(A))
 
 def _replace_diff(A : sm.Expr) \
     -> sm.Expr:
     """
-    Recursively replace the differential operator symbols (dqq and dpp),
-    with the appropriate `sympy.Derivative` objects.
+    Recursively replace the differential operator symbols,
+    with the appropriate `sympy.Derivative` objects. Here _Primed 
+    objects stay as is for _star_base to differentiate correctly.
+    
+    Parameters
+    ----------
+    
+    A : sympy.Expr
+        Expression generally containing _DerivativeSymbols, as well as _Primed
+        and functions thereof. 
     """
     
     fido = _first_index_and_diff_order(A)

@@ -115,7 +115,7 @@ class LindbladMasterEquation(sm.Basic):
 
     @property
     def rhs(self):
-        out = -sm.I * smq.Commutator(self.H, densityOp())
+        out = -sm.I/scalars.hbar * smq.Commutator(self.H, densityOp())
         for dissip in self.dissipators:
             out += dissip
         return out
@@ -128,7 +128,7 @@ class LindbladMasterEquation(sm.Basic):
 
             # Collect first to reduce the number of terms. 
         if self.neat_display:
-            return sm.Equality(lhs, derivative_not_in_num(collect_by_derivative(rhs, lhs.args[0])))
+            rhs = derivative_not_in_num(collect_by_derivative(rhs, lhs.args[0]))
         return sm.Equality(lhs, rhs)
     
     def __str__(self):
