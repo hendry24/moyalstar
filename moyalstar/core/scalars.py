@@ -11,6 +11,8 @@ hbar = sm.Symbol(r"hbar", real=True)
 def _treat_sub(sub, has_sub):
     if ((sub is None) or not(has_sub)):
         return sm.Symbol(r"")
+    if isinstance(sub, str):
+        return sm.Symbol(sub)
     if isinstance(sub, sm.Symbol):
         return sub
     return sm.Symbol(sm.latex(sub))
