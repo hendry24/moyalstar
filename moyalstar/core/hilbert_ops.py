@@ -59,13 +59,13 @@ class HermitianOp(moyalstarOp):
     def dagger(self):
         return self
     
-class positionOp(HermitianOp):
+class qOp(HermitianOp):
     base = r"\hat{q}"
 
     def wigner_transform(self):
         return scalars.q(sub = self.sub)
     
-class momentumOp(HermitianOp):
+class pOp(HermitianOp):
     base = r"\hat{p}"
         
     def wigner_transform(self):

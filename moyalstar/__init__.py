@@ -1,5 +1,5 @@
 from .core.scalars import q, p, alpha, alphaD, W
-from .core.hilbert_ops import (positionOp, momentumOp, 
+from .core.hilbert_ops import (qOp, pOp, 
                                createOp, annihilateOp, 
                                Dagger, rho)
 

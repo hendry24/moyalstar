@@ -1,12 +1,12 @@
 import sympy as sm
 
 from .base import moyalstarBase
-from ..utils.cache import _qp_cache
+from ..utils.cache import _scalar_cache
 
 __all__ = ["q", "p", "alpha", "alphaD", "W"]
 
 global hbar
-hbar = sm.Symbol(r"\hbar", real=True)
+hbar = sm.Symbol(r"hbar", real=True)
 
 def _treat_sub(sub, has_sub):
     if ((sub is None) or not(has_sub)):
@@ -26,8 +26,8 @@ class moyalstarScalar(moyalstarBase):
     def __new__(cls, sub = None):
         obj = super().__new__(cls, _treat_sub(sub, cls.has_sub)) 
         
-        global _qp_cache
-        _qp_cache.update([obj])
+        global _scalar_cache
+        _scalar_cache._update([obj])
         return obj
 
     @property
@@ -117,6 +117,7 @@ class _DerivativeSymbol(moyalstarBase):
 ####
 
 class WignerFunction(sm.Function):
+    show_vars = False
     """
     The Wigner function object.
     
@@ -127,14 +128,10 @@ class WignerFunction(sm.Function):
         Variables of the Wigner function. 
     
     """
-    def __str__(self):
-        return r"W"
-    
-    def __repr__(self):
-        return str(self)
-    
     def _latex(self, printer):
-        return str(self)
+        if self.show_vars:
+            return str(self).replace("WignerFunction", "W")
+        return r"W"
     
 class W():
     """
@@ -143,5 +140,5 @@ class W():
     some variables with manual construction, leading to incorrect evaluations.
     """
     def __new__(cls):
-        global _qp_cache
-        return WignerFunction(*list(_qp_cache))
+        global _scalar_cache
+        return WignerFunction(*list(_scalar_cache))
