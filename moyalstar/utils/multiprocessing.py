@@ -1,5 +1,5 @@
 import os
-import sympy as sm
+import sympy as sp
 from multiprocessing import Pool
 import dill
 from functools import partial
@@ -42,10 +42,10 @@ MP_CONFIG = _mp_dict()
 MP_CONFIG["enable"] = True
 MP_CONFIG["num_cpus"] = os.cpu_count()
 MP_CONFIG["min_num_args"] = 2
-# Skip multiprocessing if the number of elements is small,
+# Skip multiprocessing if the number of elements is spall,
 # in which case a single core execution is enough.
 
-def _mp_helper(A_args : sm.Expr, foo : callable):
+def _mp_helper(A_args : sp.Expr, foo : callable):
     """
     Apply `foo` to the arguments `A_args` of `A`, using multiprocessing
     if possible.
