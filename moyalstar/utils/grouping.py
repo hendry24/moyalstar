@@ -1,22 +1,22 @@
-import sympy as sm
+import sympy as sp
 from sympy.core.function import UndefinedFunction
 from ..core import scalars
 from .multiprocessing import _mp_helper
 
 __all__ = ["collect_by_derivative"]
 
-def derivative_not_in_num(A : sm.Expr):
+def derivative_not_in_num(A : sp.Expr):
     """
     Rewrite the expression such that the phase-space coordinates and derivatives with respect
     to them are not written on the numerator.
     """
     
-    A = sm.sympify(A)
+    A = sp.sympify(A)
     
-    if isinstance(A, sm.Add):
-        return sm.Add(*_mp_helper(A.args, derivative_not_in_num), evaluate=False)
+    if isinstance(A, sp.Add):
+        return sp.Add(*_mp_helper(A.args, derivative_not_in_num), evaluate=False)
     
-    der_lst = list(A.find(sm.Derivative))
+    der_lst = list(A.find(sp.Derivative))
     if not(der_lst):
         return A
     
@@ -29,11 +29,11 @@ def derivative_not_in_num(A : sm.Expr):
     Q_args_without_der = list(A.args)
     Q_args_without_der.remove(der_lst[0])
     
-    return sm.Mul(sm.Mul(*Q_args_without_der), der_lst[0], evaluate=False)
+    return sp.Mul(sp.Mul(*Q_args_without_der), der_lst[0], evaluate=False)
     
-def collect_by_derivative(A : sm.Expr, 
+def collect_by_derivative(A : sp.Expr, 
                           f : None | UndefinedFunction = None) \
-    -> sm.Expr:
+    -> sp.Expr:
     """
     Collect terms by the derivatives of the input function, by default those of the Wigner function `W`.
 
@@ -56,7 +56,7 @@ def collect_by_derivative(A : sm.Expr,
 
     A = A.expand()
 
-    if not(A.atoms(sm.Function)):
+    if not(A.atoms(sp.Function)):
         return A
 
     q = scalars.q()
@@ -65,15 +65,15 @@ def collect_by_derivative(A : sm.Expr,
         f = scalars.W()
 
     max_order = max([A_.derivative_count 
-                     for A_ in list(A.atoms(sm.Derivative))]+[0])
+                     for A_ in list(A.atoms(sp.Derivative))]+[0])
 
     def dq_m_dp_n(m, n):
         if m==0 and n==0:
             return f
-        return sm.Derivative(f, 
+        return sp.Derivative(f, 
                              *[q for _ in range(m)], 
                              *[p for _ in range(n)])
     
-    return sm.collect(A, [dq_m_dp_n(m, n) 
+    return sp.collect(A, [dq_m_dp_n(m, n) 
                           for m in range(max_order) 
                           for n in range(max_order - m)])

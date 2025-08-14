@@ -1,15 +1,15 @@
-import sympy as sm
-import sympy.physics.quantum as smq
+import sympy as sp
+import sympy.physics.quantum as spq
 from functools import cached_property
 
 from .wigner_transform import WignerTransform
-from ..core import scalars
-from ..core.hilbert_ops import densityOp, Dagger
+from . import scalars
+from .hilbert_operators import densityOp, Dagger
 from ..utils.grouping import collect_by_derivative, derivative_not_in_num
 
 __all__ = ["LindbladMasterEquation"]
 
-class _AddOnlyExpr(sm.Expr):
+class _AddOnlyExpr(sp.Expr):
     def __pow__(self, other):
         raise NotImplementedError()
     __rpow__ = __pow__
@@ -22,12 +22,12 @@ class _AddOnlyExpr(sm.Expr):
     
 class _LindbladDissipator(_AddOnlyExpr):
     def __new__(cls, rate = 1, operator_1 = 1, operator_2 = None):
-        rate = sm.sympify(rate)
+        rate = sp.sympify(rate)
         
-        operator_1 = sm.sympify(operator_1)
+        operator_1 = sp.sympify(operator_1)
         
         operator_2 = operator_2 if (operator_2 is not None) else operator_1
-        operator_2 = sm.sympify(operator_2)
+        operator_2 = sp.sympify(operator_2)
         
         return super().__new__(cls, rate, operator_1, operator_2)
     
@@ -45,12 +45,12 @@ class _LindbladDissipator(_AddOnlyExpr):
     
     def __str__(self):
         if self.operator_1 == self.operator_2:
-            op_str = sm.latex(self.operator_1)
+            op_str = sp.latex(self.operator_1)
         else:
-            op_str = r"{%s},{%s}" % (sm.latex(self.operator_1), sm.latex(self.operator_2))
+            op_str = r"{%s},{%s}" % (sp.latex(self.operator_1), sp.latex(self.operator_2))
 
         return r"{{%s}\mathcal{D}\left({%s}\right)\left[\rho\right]}" \
-                % (sm.latex(self.rate), op_str)
+                % (sp.latex(self.rate), op_str)
     
     def __repr__(self):
         return str(self)
@@ -67,11 +67,11 @@ class _LindbladDissipator(_AddOnlyExpr):
         
         out = (2*P*rho*Qd - rho*Qd*P - Qd*P*rho)
         rate_mul = self.rate / 2
-        with sm.evaluate(False): # force pretty printing
+        with sp.evaluate(False): # force pretty printing
             out =  rate_mul * out
         return out
     
-class LindbladMasterEquation(sm.Basic):
+class LindbladMasterEquation(sp.Basic):
     """
     The Lindblad master equation. 
     
@@ -82,10 +82,10 @@ class LindbladMasterEquation(sm.Basic):
     neat_display = True
     
     def __new__(cls, 
-                H : sm.Expr,
-                dissipators : list[list[sm.Expr, sm.Expr]] = []):
-        H = sm.sympify(H)
-        dissipators = sm.sympify(dissipators)
+                H : sp.Expr,
+                dissipators : list[list[sp.Expr, sp.Expr]] = []):
+        H = sp.sympify(H)
+        dissipators = sp.sympify(dissipators)
         return super().__new__(cls, H, dissipators)
     
     @property
@@ -111,28 +111,28 @@ class LindbladMasterEquation(sm.Basic):
     
     @property
     def lhs(self):
-        return sm.Derivative(densityOp(), scalars.t())
+        return sp.Derivative(densityOp(), scalars.t())
 
     @property
     def rhs(self):
-        out = -sm.I/scalars.hbar * smq.Commutator(self.H, densityOp())
+        out = -sp.I/scalars.hbar * spq.Commutator(self.H, densityOp())
         for dissip in self.dissipators:
             out += dissip
         return out
     
     @cached_property
     def wigner_transform(self):
-        lhs = sm.Derivative(scalars.W(), scalars.t())
+        lhs = sp.Derivative(scalars.W(), scalars.t())
         rhs = WignerTransform(self.rhs.doit().expand())
                                             # By calling expand, we effectively call .expand of _LindbladDissipator
 
             # Collect first to reduce the number of terms. 
         if self.neat_display:
             rhs = derivative_not_in_num(collect_by_derivative(rhs, lhs.args[0]))
-        return sm.Equality(lhs, rhs)
+        return sp.Equality(lhs, rhs)
     
     def __str__(self):
-        return sm.latex(sm.Equality(self.lhs, self.rhs))
+        return sp.latex(sp.Equality(self.lhs, self.rhs))
     
     def __repr__(self):
         return str(self)

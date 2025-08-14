@@ -1,11 +1,11 @@
 import sympy as sp
-import typing
 
+import typing
 from . import scalars
-from .base import moyalstarBase
+from .base import Base, _sub_cache, _treat_sub, _operation_routine
 from ..utils.multiprocessing import _mp_helper
 
-class moyalstarOp(moyalstarBase):
+class Operator(Base):
     
     base = NotImplemented
     has_sub = True
@@ -14,8 +14,13 @@ class moyalstarOp(moyalstarBase):
         return r"%s_{%s}" % (cls.base, sub), {"commutative":False}
     
     def __new__(cls, sub = None):
-        return super().__new__(cls, scalars._treat_sub(sub, cls.has_sub))
-    
+        sub = _treat_sub(sub, cls.has_sub)
+        
+        global _sub_cache
+        _sub_cache._update([sub])
+        
+        return super().__new__(cls, sub)
+        
     @property
     def sub(self):
         return self._custom_args[0]
@@ -25,35 +30,28 @@ class moyalstarOp(moyalstarBase):
     
     def wigner_transform(self):
         raise NotImplementedError()
-        
+
 class Dagger():
     """
     Hermitian conjugate of `A`.
     """
-    def __new__(cls, A : sp.Expr | moyalstarOp):
-        A = sp.sympify(A)
-        
-        if not(bool(A.atoms(moyalstarOp))):
-            return A.conjugate()
-        
-        A.expand()
-        
-        if isinstance(A, sp.Add):
-            res = _mp_helper(A.args, Dagger)
-            return sp.Add(*res)
-        
-        if isinstance(A, sp.Mul):
-            res = _mp_helper(A.args, Dagger)
-            return sp.Mul(*list(reversed(res)))
-        
-        if isinstance(A, sp.Pow):
-            base : moyalstarOp = A.args[0]
-            exponent  = A.args[1]
-            return base.dagger() ** exponent
-        
-        return A.dagger()
+    def __new__(cls, A : sp.Expr | Operator):
+        return _operation_routine(A,
+                                  "Dagger",
+                                  (),
+                                  (Operator,),
+                                  lambda A: A.conjugate(),
+                                  (Operator,
+                                  lambda A:  A.dagger()),
+                                  (sp.Add, 
+                                   lambda A: sp.Add(*_mp_helper(A.args, Dagger))), 
+                                  (sp.Pow,
+                                   lambda A: Dagger(A.args[0]) ** A.args[1]),
+                                  (sp.Mul,
+                                   lambda A: sp.Mul(*list(reversed(_mp_helper(A.args, Dagger)))))
+                                  )
     
-class HermitianOp(moyalstarOp):
+class HermitianOp(Operator):
     
     @typing.final
     def dagger(self):
@@ -71,7 +69,7 @@ class pOp(HermitianOp):
     def wigner_transform(self):
         return scalars.p(sub = self.sub)
     
-class annihilateOp(moyalstarOp):
+class annihilateOp(Operator):
     base = r"\hat{a}"
         
     def define(self):
@@ -85,7 +83,7 @@ class annihilateOp(moyalstarOp):
         with sp.evaluate(False):
             return scalars.alpha(sub = self.sub)
     
-class createOp(moyalstarOp):
+class createOp(Operator):
     base = r"\hat{a}^{\dagger}"
     
     def define(self):
@@ -106,7 +104,9 @@ class densityOp(HermitianOp):
         return super().__new__(cls, sub)
     
     def wigner_transform(self):
-        return scalars.W()
+        global _sub_cache
+        N = len(_sub_cache)
+        return (2*scalars.pi*scalars.hbar)**N * scalars.W()
     
 class rho():
     def __new__(cls):

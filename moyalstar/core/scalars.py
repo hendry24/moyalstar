@@ -1,23 +1,14 @@
-import sympy as sm
+import sympy as sp
 
-from .base import moyalstarBase
-from ..utils.cache import _scalar_cache
+from .base import Base, _sub_cache, _treat_sub
 
 __all__ = ["q", "p", "alpha", "alphaD", "W"]
 
-global hbar
-hbar = sm.Symbol(r"hbar", real=True)
+global hbar, pi
+hbar = sp.Symbol(r"hbar", real=True)
+pi = sp.Symbol(r"pi", real=True)
 
-def _treat_sub(sub, has_sub):
-    if ((sub is None) or not(has_sub)):
-        return sm.Symbol(r"")
-    if isinstance(sub, str):
-        return sm.Symbol(sub)
-    if isinstance(sub, sm.Symbol):
-        return sub
-    return sm.Symbol(sm.latex(sub))
-
-class moyalstarScalar(moyalstarBase):
+class Scalar(Base):
     base = NotImplemented
     has_sub = True
     
@@ -26,21 +17,25 @@ class moyalstarScalar(moyalstarBase):
         return name, {"real" : True}
         
     def __new__(cls, sub = None):
-        obj = super().__new__(cls, _treat_sub(sub, cls.has_sub)) 
+        sub = _treat_sub(sub, cls.has_sub)
         
-        global _scalar_cache
-        _scalar_cache._update([obj])
-        return obj
+        global _sub_cache
+        _sub_cache._update([sub])
 
+        return super().__new__(cls, sub)
+        
     @property
     def sub(self):
         return self._custom_args[0]
     
-class t(moyalstarScalar):
+    def weyl_transform(self):
+        raise NotImplementedError()
+    
+class t(Scalar):
     base = r"t"
     has_sub = False
     
-class q(moyalstarScalar):
+class q(Scalar):
     """
     The canonical position operator or first phase-space quadrature.
     
@@ -52,7 +47,11 @@ class q(moyalstarScalar):
     """
     base = r"q"
     
-class p(moyalstarScalar):
+    def weyl_transform(self):
+        from .hilbert_operators import qOp
+        return qOp(self.sub)
+    
+class p(Scalar):
     """
     The canonical position operator or first phase-space quadrature.
     
@@ -64,25 +63,29 @@ class p(moyalstarScalar):
     """
     base = r"p"
     
+    def weyl_transform(self):
+        from .hilbert_operators import pOp
+        return pOp(self.sub)
+    
 class alpha():
     def __new__(cls, sub = None):
-        with sm.evaluate(False):
-            return (1 / sm.sqrt(2*hbar)) * (q(sub) + sm.I * p(sub))
+        with sp.evaluate(False):
+            return (1 / sp.sqrt(2*hbar)) * (q(sub) + sp.I * p(sub))
         
 class alphaD():
     def __new__(cls, sub = None):
-        with sm.evaluate(False):
-            return (1 / sm.sqrt(2*hbar)) * (q(sub) - sm.I * p(sub))
+        with sp.evaluate(False):
+            return (1 / sp.sqrt(2*hbar)) * (q(sub) - sp.I * p(sub))
 
 ###
 
-class _Primed(moyalstarBase):
+class _Primed(Base):
     def _get_symbol_name_and_assumptions(cls, A):
-        return r"{%s}'" % (sm.latex(A)), {"commutative" : False}
+        return r"{%s}'" % (sp.latex(A)), {"commutative" : False}
     
-    def __new__(cls, A : sm.Expr):
+    def __new__(cls, A : sp.Expr):
         
-        A = sm.sympify(A)
+        A = sp.sympify(A)
         
         if isinstance(A, (q,p)):
             return super().__new__(cls, A)
@@ -94,16 +97,16 @@ class _Primed(moyalstarBase):
         return self._custom_args[0]
     
 class _DePrimed():
-    def __new__(cls, A : sm.Expr):
+    def __new__(cls, A : sp.Expr):
         subs_dict = {X : X.base for X in A.atoms(_Primed)}
         return A.subs(subs_dict)
 
 ###
 
-class _DerivativeSymbol(moyalstarBase):
+class _DerivativeSymbol(Base):
     
     def _get_symbol_name_and_assumptions(cls, primed_phase_space_coordinate):
-        return r"\partial_{%s}" % (sm.latex(primed_phase_space_coordinate)), {"commutative":False}
+        return r"\partial_{%s}" % (sp.latex(primed_phase_space_coordinate)), {"commutative":False}
     
     def __new__(cls, primed_phase_space_coordinate):
         if not(isinstance(primed_phase_space_coordinate, _Primed)):
@@ -118,7 +121,7 @@ class _DerivativeSymbol(moyalstarBase):
 
 ####
 
-class WignerFunction(sm.Function):
+class WignerFunction(sp.Function):
     show_vars = False
     """
     The Wigner function object.
@@ -135,6 +138,12 @@ class WignerFunction(sm.Function):
             return str(self).replace("WignerFunction", "W")
         return r"W"
     
+    def weyl_transform(self):
+        from .hilbert_operators import rho
+        global _sub_cache, pi, hbar
+        N = len(_sub_cache)
+        return rho() / (2*pi*hbar)**N
+    
 class W():
     """
     The 'WignerFunction' constructor. Constructs 'WignerFunction' using cached 'q' and 'p' as 
@@ -142,5 +151,9 @@ class W():
     some variables with manual construction, leading to incorrect evaluations.
     """
     def __new__(cls):
-        global _scalar_cache
-        return WignerFunction(*list(_scalar_cache))
+        global _sub_cache
+        vars = []        
+        for sub in _sub_cache:
+            vars.extend([q(sub), p(sub)])
+        
+        return WignerFunction(t(), *vars)

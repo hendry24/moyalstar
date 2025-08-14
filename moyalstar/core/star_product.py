@@ -1,4 +1,4 @@
-import sympy as sm
+import sympy as sp
 
 from . import scalars
 from ..utils.multiprocessing import _mp_helper
@@ -43,11 +43,11 @@ class Bopp():
 
     """
         
-    def __new__(cls, A : sm.Expr, left : bool = False):
+    def __new__(cls, A : sp.Expr, left : bool = False):
         
-        if A.has(sm.Derivative):
+        if A.has(sp.Derivative):
             A = A.doit()
-            if A.has(sm.Derivative):
+            if A.has(sp.Derivative):
                 s = "'A' contains persistent derivative(s), most possibly working on an UndefinedFunction."
                 s += "The function has tried to call 'A.doit()' but couldn't get rid of the 'Derivative"
                 s += "objecs. This leads to faulty Bopp-shifting which results in incorrect ★-products evaluation."
@@ -74,9 +74,9 @@ class Bopp():
         subs_dict = {}
         for X in list(A.atoms()):
             if isinstance(X, scalars.q):
-                subs_dict[X] = X + sgn * sm.I*scalars.hbar/2 * dxx(scalars.p(X.sub))
+                subs_dict[X] = X + sgn * sp.I*scalars.hbar/2 * dxx(scalars.p(X.sub))
             if isinstance(X, scalars.p):
-                subs_dict[X] = X - sgn * sm.I*scalars.hbar/2 *  dxx(scalars.q(X.sub))
+                subs_dict[X] = X - sgn * sp.I*scalars.hbar/2 *  dxx(scalars.q(X.sub))
         
         return A.subs(subs_dict).expand()
     
@@ -104,21 +104,21 @@ class Star():
     See Also
     --------
     
-    moyalstar.bopp : Bopp shift the input expression. 
+    .bopp : Bopp shift the input expression. 
     
     """
 
     def __new__(cls, *args):
         if not(args):
-            return sm.Integer(1)
+            return sp.Integer(1)
         
-        out = sm.sympify(args[0])
+        out = sp.sympify(args[0])
         for arg in args[1:]:
-            out = _star_base(out, sm.sympify(arg))
+            out = _star_base(out, sp.sympify(arg))
         return out
     
-def _star_base(A : sm.Expr, B : sm.Expr) \
-    -> sm.Expr:    
+def _star_base(A : sp.Expr, B : sp.Expr) \
+    -> sp.Expr:    
     any_phase_space_variable_in_A = A.has(scalars.q, scalars.p)
     any_phase_space_variable_in_B = B.has(scalars.q, scalars.p)
     if (not(any_phase_space_variable_in_A) or 
@@ -132,16 +132,16 @@ def _star_base(A : sm.Expr, B : sm.Expr) \
             - Has q or p in the exponents.
             - Is a non-positive-integer power of q or p. 
         """
-        pow_in_X = X.find(sm.Pow)
+        pow_in_X = X.find(sp.Pow)
         pow_in_X_with_qp = [x for x in pow_in_X if x.has(scalars.q, scalars.p)]
         for x in pow_in_X_with_qp:
             exp = x.args[1]
-            if not(isinstance(exp, sm.Integer) and exp >= 0):
+            if not(isinstance(exp, sp.Integer) and exp >= 0):
                 return True
         return False
 
     cannot_Bopp_A, cannot_Bopp_B = \
-        [any([x.atoms(scalars.q, scalars.p) for x in X.find(sm.Function)])
+        [any([x.atoms(scalars.q, scalars.p) for x in X.find(sp.Function)])
          or cannot_Bopp_pow(X) for X in [A,B]]
 
     if cannot_Bopp_A and cannot_Bopp_B:
@@ -173,18 +173,18 @@ def _star_base(A : sm.Expr, B : sm.Expr) \
     done by `_replace_diff`. This function then replaces q' and p' by q and p, respectively.
     """
 
-    X : sm.Expr
-    if isinstance(X, sm.Add):
+    X : sp.Expr
+    if isinstance(X, sp.Add):
         X_args = X.args
     else:
         X_args = [X]
     
-    out = sm.Add(*_mp_helper(X_args, _replace_diff))
+    out = sp.Add(*_mp_helper(X_args, _replace_diff))
                 
     return scalars._DePrimed(out).doit().expand()
 
-def _first_index_and_diff_order(A : sm.Expr) \
-    -> None | tuple[int, scalars.q|scalars.p, int|sm.Number]:
+def _first_index_and_diff_order(A : sp.Expr) \
+    -> None | tuple[int, scalars.q|scalars.p, int|sp.Number]:
     """
     
     Get the index of the first differential operator appearing
@@ -210,7 +210,7 @@ def _first_index_and_diff_order(A : sm.Expr) \
         object. It stays _Primed here since the other factors in the Expr that
         the derivative is supposed to work on is the ones containing _Primed.
         
-    diff_order : int or sm.Number
+    diff_order : int or sp.Number
         The order of the differentiation contained in the `idx`-th argument of 
         `A`, i.e., the exponent of `_DerivativeSymbol` encountered.
     """
@@ -224,7 +224,7 @@ def _first_index_and_diff_order(A : sm.Expr) \
     derivative operators.
     """
     A = A.expand()
-    if isinstance(A, sm.Add):
+    if isinstance(A, sp.Add):
         raise TypeError("Input must not be 'Add'.")
     
     if not(A.has(scalars._DerivativeSymbol)):
@@ -233,22 +233,22 @@ def _first_index_and_diff_order(A : sm.Expr) \
     if isinstance(A, scalars._DerivativeSymbol):
         return 0, A.diff_var, 1
 
-    if isinstance(A, sm.Pow):
+    if isinstance(A, sp.Pow):
         # We have dxx**n for n>1. For a Pow object, the second argument gives
         # the exponent; in this case, the differentiation order.
         return 0, A.args[0].diff_var, A.args[1]
     
-    if isinstance(A, sm.Mul):
+    if isinstance(A, sp.Mul):
         for idx, A_ in enumerate(A.args): 
             if isinstance(A_, scalars._DerivativeSymbol):
                 return idx, A_.diff_var, 1
             if A_.has(scalars._DerivativeSymbol):
                 return idx, A_.args[0].diff_var, A_.args[1]
                 
-    raise TypeError(r"Invalid input: \n\n {%s}" % sm.latex(A))
+    raise TypeError(r"Invalid input: \n\n {%s}" % sp.latex(A))
 
-def _replace_diff(A : sm.Expr) \
-    -> sm.Expr:
+def _replace_diff(A : sp.Expr) \
+    -> sp.Expr:
     """
     Recursively replace the differential operator symbols,
     with the appropriate `sympy.Derivative` objects. Here _Primed 
@@ -267,9 +267,9 @@ def _replace_diff(A : sm.Expr) \
     if fido: # no more recursion if fido is None
         cut_idx, diff_var, diff_order = fido
         prefactor = A.args[:cut_idx]
-        A_leftover = sm.Mul(*A.args[cut_idx+1:])
-        return sm.Mul(*prefactor,
-                        sm.Derivative(_replace_diff(A_leftover),
+        A_leftover = sp.Mul(*A.args[cut_idx+1:])
+        return sp.Mul(*prefactor,
+                        sp.Derivative(_replace_diff(A_leftover),
                                       *[diff_var]*diff_order))
         """
         With this code, we can afford to replace any power of the first
