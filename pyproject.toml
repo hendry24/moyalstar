@@ -30,4 +30,3 @@ classifiers = [
 [project.urls]
 Repository = "https://github.com/hendry24/moyalstar"
 Issues = "https://github.com/hendry24/moyalstar/issues"
-Tutorial = "https://github.com/hendry24/moyalstar/blob/main/moyalstar_tutorial.ipynb"
