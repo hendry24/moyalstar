@@ -4,9 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "moyalstar"
-version = "1.0.2"
+version = "1.1.0"
 dependencies = [
-    "sympy >= 1.13.3"
+    "sympy >= 1.13.3",
+    "dill"
 ]
 requires-python = ">= 3.8"
 authors = [

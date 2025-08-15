@@ -1,6 +1,8 @@
 # Moyal_star
 Moyal star-product with SymPy utilizing the Bopp shift.
 
+### THIS PACKAGE HAS CEASED FEATURE DEVELOPMENT. Go to https://github.com/hendry24/SymQP for the latest development.
+
 ### Installation
 
 ```

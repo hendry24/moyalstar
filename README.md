@@ -1,15 +1,13 @@
 # Moyal_star
-Moyal star-product with SymPy utilizing the Bopp shift.
+Moyal star-product with SymPy utilizing the Bopp shift, with an easy interface to Wigner-transform the Lindblad master equation.
+
+### THIS PACKAGE HAS CEASED FEATURE DEVELOPMENT. Go to https://github.com/hendry24/SymQP for the latest development.
 
 ### Installation
 
 ```
 pip install git+https://github.com/hendry24/moyalstar
 ```
-
-### Tutorial
-
-See ``moyalstar_tutorial.ipynb``.
 
 ### References
 

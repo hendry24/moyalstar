@@ -1,3 +1,7 @@
+`v1.1.0`
+-   Fixed 'Dagger'. Now it correctly conjugates a complex scalar.
+-   Ceased feature development of 'moyalstar'. Migrating to 'SymQP'.
+
 `v1.0.2`
 -   Bumped version number to resolve release issues.
 
