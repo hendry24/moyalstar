@@ -87,7 +87,7 @@ class createOp(Operator):
     base = r"\hat{a}^{\dagger}"
     
     def define(self):
-        return self.dagger().define()
+        return Dagger(self.dagger().define())
         
     def dagger(self):
         return annihilateOp(sub = self.sub)
